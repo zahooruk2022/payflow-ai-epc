@@ -1,6 +1,6 @@
 # PayFlow AI EPC
 
-EPC-foundation variant of [payflow-ai](https://github.com/zahooruk2022/payflow-ai) targeting `api.sys.tpcf.tnz-field-epc.lvn.broadcom.net`.
+EPC-foundation variant of [payflow-ai](https://github.com/zahooruk2022/payflow-ai) targeting `api.sys.<your-foundation-domain>`.
 
 Primary goal: investigate whether the EPC AI service supports OpenAI tool calling (`chat-and-tools-model` plan), and restore the live `@Tool` payment data methods if it does.
 
@@ -27,7 +27,7 @@ Chat uses the same embedded-system-prompt approach as `payflow-ai` (dhaka). `Pay
 
 ```bash
 # 1. Target EPC
-cf api https://api.sys.tpcf.tnz-field-epc.lvn.broadcom.net
+cf api https://api.sys.<your-foundation-domain>
 cf login
 
 # 2. Check what AI service plans are available

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: payflow-ai
+    name: payflow-ai-epc
 
   ai:
     retry:
@@ -54,4 +54,5 @@ management:
 logging:
   level:
     com.demo.payflowai: DEBUG
-    org.springframework.ai: INFO
+    org.springframework.ai: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG

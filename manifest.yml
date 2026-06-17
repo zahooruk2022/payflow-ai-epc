@@ -1,7 +1,7 @@
 ---
 # PayFlow AI EPC — Cloud Foundry deployment manifest
 #
-# Target foundation: api.sys.tpcf.tnz-field-epc.lvn.broadcom.net
+# Target foundation: api.sys.<your-foundation-domain>
 #
 # Before pushing:
 #   1. Check available plans: cf marketplace -e ai-models
@@ -29,6 +29,7 @@ applications:
 
     services:
       - payflow-ai-chat-tools    # → spring.ai.openai.chat.base-url + api-key (GenAiVcapPostProcessor)
+      - payflow-postgres         # → spring.datasource.* (java-cfenv-boot)
       - payflow-rabbitmq         # → spring.rabbitmq.* (java-cfenv-boot)
       - payflow-redis            # → spring.data.redis.* (java-cfenv-boot)
 
@@ -39,7 +40,5 @@ applications:
         -XX:MaxRAMPercentage=65.0
         -Djava.security.egd=file:/dev/./urandom
 
-      # TODO: Set correct model name after inspecting the service binding.
-      # Run: cf create-service-key payflow-ai-chat-tools temp-key && cf service-key payflow-ai-chat-tools temp-key
-      # Previous EPC plan: chat-and-tools-model
-      AI_CHAT_MODEL: mistralai/Devstral-Small-2507
+      # EPC foundation — chat-and-tools-model plan
+      AI_CHAT_MODEL: gpt-oss:20b
