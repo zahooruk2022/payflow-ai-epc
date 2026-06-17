@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayFlow — AI Payment Intelligence (Offline Demo)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: {} }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  /* CSS variables for dark/light — mirrors index.css */
+  :root {
+    --bg-page:#f1f5f9; --bg-nav:#ffffff; --bg-card:#ffffff;
+    --border:rgba(0,0,0,0.08); --text:#0f172a; --muted:#64748b;
+  }
+  .dark {
+    --bg-page:#0f1729; --bg-nav:#0b1220; --bg-card:#141e35;
+    --border:rgba(255,255,255,0.06); --text:#e2e8f0; --muted:#94a3b8;
+  }
+  body { background:var(--bg-page); color:var(--text); font-family:'Inter',system-ui,sans-serif; transition:background-color .2s,color .2s; }
+  .card { background:var(--bg-card); border:1px solid var(--border); border-radius:.75rem; padding:1.25rem; transition:background-color .2s; }
+  .nav-bg { background:var(--bg-nav); border-bottom:1px solid var(--border); }
+  @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  @keyframes slide-in { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes bounce-dot { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+  .ticker-track { animation:ticker 40s linear infinite; }
+  .anim-slide { animation:slide-in .25s ease-out; }
+  .cursor-blink { display:inline-block;width:2px;height:14px;background:#8b5cf6;margin-left:2px;animation:blink .7s infinite;vertical-align:middle; }
+  .dot1{animation:bounce-dot 1.2s .0s infinite ease-in-out}
+  .dot2{animation:bounce-dot 1.2s .15s infinite ease-in-out}
+  .dot3{animation:bounce-dot 1.2s .30s infinite ease-in-out}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(128,128,128,.3);border-radius:2px}
+  /* Safelist — ensures Tailwind CDN generates these classes */
+  .s{display:none} .s .bg-emerald-500,.s .bg-red-500,.s .bg-amber-500,.s .bg-blue-500,.s .bg-violet-500,.s .bg-slate-400 {}
+  .s .text-emerald-600,.s .dark\:text-emerald-400,.s .text-red-600,.s .dark\:text-red-400,.s .text-amber-600,.s .dark\:text-amber-400 {}
+  .s .text-blue-600,.s .dark\:text-blue-400,.s .text-violet-600,.s .dark\:text-violet-400,.s .text-orange-600,.s .dark\:text-orange-400 {}
+  .s .bg-emerald-50,.s .bg-red-50,.s .bg-amber-50,.s .bg-blue-50,.s .bg-orange-50,.s .bg-slate-100 {}
+  .s .border-emerald-200,.s .border-red-200,.s .border-amber-200,.s .border-blue-200,.s .border-orange-200 {}
+  .s .bg-blue-600,.s .border-blue-500,.s .text-emerald-700,.s .text-red-700,.s .text-amber-700,.s .text-blue-700 {}
+  .s .text-emerald-300,.s .text-red-300,.s .text-amber-300,.s .text-blue-300,.s .text-violet-400 {}
+  .s .dark\:bg-emerald-500\/10,.s .dark\:bg-red-500\/10,.s .dark\:bg-amber-500\/10,.s .dark\:bg-blue-500\/10 {}
+  .s .dark\:border-emerald-500\/20,.s .dark\:border-red-500\/20,.s .dark\:border-amber-500\/20,.s .dark\:border-blue-500\/20 {}
+  .s .animate-pulse,.s .animate-spin,.s .animate-bounce {}
+  .s .bg-blue-50,.s .dark\:bg-blue-500\/10,.s .border-blue-200,.s .dark\:border-blue-500\/20 {}
+  .s .bg-purple-50,.s .dark\:bg-purple-500\/10,.s .border-purple-200,.s .dark\:border-purple-500\/20,.s .text-purple-600,.s .dark\:text-purple-400,.s .text-purple-700,.s .dark\:text-purple-300 {}
+  .s .bg-blue-100,.s .dark\:bg-blue-600\/20,.s .border-violet-500,.s .border-blue-500 {}
+</style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header class="nav-bg px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm dark:shadow-none">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-lg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <div>
+      <span class="text-slate-900 dark:text-white font-bold text-base tracking-tight">PayFlow</span>
+      <span class="ml-2 text-slate-400 text-xs font-medium hidden sm:inline">AI Payment Intelligence</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="font-medium font-mono">gpt-oss:20b</span>
+      <span class="w-1.5 h-1.5 rounded-full bg-violet-500 dark:bg-violet-400 animate-pulse"></span>
+    </div>
+    <button id="btn-theme" onclick="toggleTheme()" class="p-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" title="Toggle theme">
+      <span id="icon-sun" class="hidden"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
+      <span id="icon-moon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════ NAV TABS ═══════════════════════════════ -->
+<nav class="nav-bg px-6">
+  <div class="flex" id="tab-nav"></div>
+</nav>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<main class="flex-1 p-6 overflow-auto">
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard">
+    <!-- Ticker -->
+    <div id="ticker-wrap" class="card px-4 py-2.5 overflow-hidden mb-4">
+      <div class="flex items-center gap-3">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex-shrink-0 border-r border-slate-200 dark:border-white/10 pr-3">Live</span>
+        <div class="overflow-hidden flex-1">
+          <div id="ticker-inner" class="ticker-track flex gap-8 whitespace-nowrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div id="stat-cards" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mb-4"></div>
+
+    <!-- Row 2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+      <div class="lg:col-span-7">
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-slate-900 dark:text-white font-semibold text-sm">Transaction Volume — Last 15 min</h3>
+            <span class="text-slate-400 text-xs">Demo · 1-min buckets</span>
+          </div>
+          <div style="position:relative;height:220px"><canvas id="chart-live"></canvas></div>
+        </div>
+      </div>
+      <div class="lg:col-span-3">
+        <div class="card">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-slate-900 dark:text-white font-semibold text-sm flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Status Breakdown
+            </h3>
+            <span class="text-slate-400 text-xs">247 total</span>
+          </div>
+          <div style="position:relative;height:160px"><canvas id="chart-donut"></canvas></div>
+          <div id="donut-legend" class="space-y-1.5 mt-1"></div>
+        </div>
+      </div>
+      <div class="lg:col-span-2">
+        <!-- System Status -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-slate-900 dark:text-white font-semibold text-sm flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              System Health
+            </h3>
+          </div>
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between"><span class="text-slate-600 dark:text-slate-300 text-xs font-medium flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>Spring Boot API</span><div class="flex items-center gap-1.5"><span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">UP</span><span class="w-2 h-2 rounded-full bg-emerald-500"></span></div></div>
+            <div class="flex items-center justify-between"><span class="text-slate-600 dark:text-slate-300 text-xs font-medium flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>PostgreSQL</span><div class="flex items-center gap-1.5"><span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">UP</span><span class="w-2 h-2 rounded-full bg-emerald-500"></span></div></div>
+            <div class="flex items-center justify-between"><span class="text-slate-600 dark:text-slate-300 text-xs font-medium flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>RabbitMQ</span><div class="flex items-center gap-1.5"><span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">UP</span><span class="w-2 h-2 rounded-full bg-emerald-500"></span></div></div>
+            <div class="flex items-center justify-between"><span class="text-slate-600 dark:text-slate-300 text-xs font-medium flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Redis</span><div class="flex items-center gap-1.5"><span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">UP</span><span class="w-2 h-2 rounded-full bg-emerald-500"></span></div></div>
+            <div class="flex items-center justify-between"><span class="text-slate-600 dark:text-slate-300 text-xs font-medium flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>AI Model</span><div class="flex items-center gap-1.5"><span class="text-[10px] font-bold uppercase text-violet-600 dark:text-violet-400">Live</span><span class="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></span></div></div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.04]">
+            <a href="#" class="text-blue-500 hover:text-blue-400 text-[10px] font-medium flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> RabbitMQ Console →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+      <div class="lg:col-span-5"><div id="top-banks" class="card"></div></div>
+      <div class="lg:col-span-4">
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-slate-900 dark:text-white font-semibold text-sm flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Risk Score Distribution
+            </h3>
+            <span class="text-slate-400 text-xs">247 transactions</span>
+          </div>
+          <div style="position:relative;height:150px"><canvas id="chart-risk"></canvas></div>
+          <div class="flex gap-3 mt-2 flex-wrap">
+            <div class="flex items-center gap-1 text-[10px]"><span class="w-2 h-2 rounded-sm" style="background:#10b981"></span><span class="text-slate-500 dark:text-slate-400">Clean</span></div>
+            <div class="flex items-center gap-1 text-[10px]"><span class="w-2 h-2 rounded-sm" style="background:#3b82f6"></span><span class="text-slate-500 dark:text-slate-400">Low</span></div>
+            <div class="flex items-center gap-1 text-[10px]"><span class="w-2 h-2 rounded-sm" style="background:#f59e0b"></span><span class="text-slate-500 dark:text-slate-400">Medium</span></div>
+            <div class="flex items-center gap-1 text-[10px]"><span class="w-2 h-2 rounded-sm" style="background:#f97316"></span><span class="text-slate-500 dark:text-slate-400">High</span></div>
+            <div class="flex items-center gap-1 text-[10px]"><span class="w-2 h-2 rounded-sm" style="background:#ef4444"></span><span class="text-slate-500 dark:text-slate-400">Critical</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="lg:col-span-3"><div id="account-balances" class="card"></div></div>
+    </div>
+
+    <!-- Recent transactions -->
+    <div id="recent-txns" class="card"></div>
+  </div>
+
+  <!-- SEND PAYMENT -->
+  <div id="tab-payments" style="display:none">
+    <div class="max-w-xl">
+      <div class="card">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-600/20 flex items-center justify-center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-600 dark:text-blue-400"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </div>
+          <div>
+            <h2 class="text-slate-900 dark:text-white font-semibold">New Interbank Payment</h2>
+            <p class="text-slate-400 text-xs">Submit a payment — watch it process in real time</p>
+          </div>
+        </div>
+        <div id="pay-feedback" class="hidden mb-4"></div>
+        <form id="pay-form" onsubmit="handlePayment(event)" class="space-y-4">
+          <div>
+            <label class="block text-slate-500 dark:text-slate-400 text-xs font-medium mb-1.5 uppercase tracking-wider">Sending Bank</label>
+            <select id="pay-sender" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg px-3 py-2.5 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 cursor-pointer" required></select>
+          </div>
+          <div class="flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-300 dark:text-slate-600"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+          <div>
+            <label class="block text-slate-500 dark:text-slate-400 text-xs font-medium mb-1.5 uppercase tracking-wider">Receiving Bank</label>
+            <select id="pay-receiver" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg px-3 py-2.5 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 cursor-pointer" required></select>
+          </div>
+          <div>
+            <label class="block text-slate-500 dark:text-slate-400 text-xs font-medium mb-1.5 uppercase tracking-wider">Amount (GBP)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">£</span>
+              <input id="pay-amount" type="number" min="0.01" step="0.01" placeholder="0.00" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg px-3 py-2.5 pl-7 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500" required>
+            </div>
+            <div class="flex gap-2 mt-2 flex-wrap">
+              <button type="button" onclick="setAmount(10000)" class="px-2.5 py-1 rounded-md text-xs border bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all">£10,000</button>
+              <button type="button" onclick="setAmount(25000)" class="px-2.5 py-1 rounded-md text-xs border bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all">£25,000</button>
+              <button type="button" onclick="setAmount(50000)" class="px-2.5 py-1 rounded-md text-xs border bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all">£50,000</button>
+              <button type="button" onclick="setAmount(75000)" class="px-2.5 py-1 rounded-md text-xs border bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all">£75,000</button>
+              <button type="button" onclick="setAmount(60000)" class="px-2.5 py-1 rounded-md text-xs border bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-100 transition-all" title="Guarantees a fraud flag">£60K ⚠ fraud test</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-slate-500 dark:text-slate-400 text-xs font-medium mb-1.5 uppercase tracking-wider">Description</label>
+            <input id="pay-desc" type="text" placeholder="e.g. Interbank settlement — Q2 FY26" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg px-3 py-2.5 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500">
+          </div>
+          <button id="pay-btn" type="submit" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-lg transition-all text-sm">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send Payment
+          </button>
+        </form>
+        <p class="text-slate-400 text-xs text-center mt-4">Tip: Try &gt;£50K, round numbers, or rapid succession to trigger fraud detection</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE FEED -->
+  <div id="tab-transactions" style="display:none">
+    <div class="max-w-4xl space-y-4">
+      <div id="feed-filters" class="flex gap-2 flex-wrap"></div>
+      <div id="feed-list" class="card !p-0 divide-y" style="padding:0"></div>
+    </div>
+  </div>
+
+  <!-- FRAUD ALERTS -->
+  <div id="tab-alerts" style="display:none">
+    <div id="alerts-list" class="max-w-3xl space-y-3"></div>
+  </div>
+
+  <!-- AI ANALYST -->
+  <div id="tab-ai" style="display:none" class="w-full">
+    <div class="w-full flex flex-col" style="height:calc(100vh - 160px)">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-violet-500"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="text-slate-900 dark:text-white font-semibold text-sm">PayFlow Intelligence</span>
+          <span class="text-[10px] font-mono text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">gpt-oss:20b · streaming</span>
+        </div>
+        <button id="btn-new-session" onclick="newChatSession()" class="hidden text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">New session</button>
+      </div>
+      <div id="chat-messages" class="flex-1 overflow-y-auto rounded-xl border border-slate-200 dark:border-white/[0.06] p-4 space-y-4 min-h-0" style="background:var(--bg-card)"></div>
+      <div class="mt-3 flex gap-2 flex-wrap" id="chat-suggestions"></div>
+      <form onsubmit="chatSend(event)" class="mt-3 flex gap-2">
+        <input id="chat-input" placeholder="Ask anything about payments, fraud, or balances…" class="flex-1 border border-slate-200 dark:border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 caret-violet-500 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-500" style="background:var(--bg-card)">
+        <button type="submit" id="chat-send-btn" class="bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors">Send</button>
+      </form>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════
+const BANKS = [
+  { id:1, name:'Vantage Bank PLC',      num:'VB-001-4419', balance:6100000 },
+  { id:2, name:'Albion Bank PLC',       num:'AB-002-3812', balance:5000000 },
+  { id:3, name:'Harrington PLC',        num:'HP-003-2271', balance:4200000 },
+  { id:4, name:'Meridian Bank PLC',     num:'MB-004-7753', balance:3500000 },
+  { id:5, name:'Crestfield Group PLC',  num:'CG-005-9918', balance:2750000 },
+  { id:6, name:'Caledonian Bank',       num:'CB-006-5532', balance:1800000 },
+]
+
+// [id, senderIdx, receiverIdx, amount, status, risk, minsAgo]
+const TXN_SEED = [
+  [1, 0,1,125000,'FLAGGED',85,142],[2,3,4,250000,'FLAGGED',92,138],[3,4,3,75000,'FLAGGED',71,125],
+  [4,0,3,50000,'FLAGGED',68,118],[5,3,2,88000,'FLAGGED',78,112],[6,3,1,110000,'FLAGGED',88,89],
+  [7,0,5,95000,'FLAGGED',82,76],[8,4,2,200000,'FLAGGED',95,64],[9,1,2,15000,'COMPLETED',12,158],
+  [10,5,3,8500,'COMPLETED',8,152],[11,2,0,42000,'COMPLETED',22,149],[12,1,4,65000,'FLAGGED',74,143],
+  [13,3,5,12000,'COMPLETED',14,140],[14,0,2,28000,'COMPLETED',19,136],[15,5,1,95000,'FLAGGED',81,132],
+  [16,4,0,18500,'COMPLETED',16,128],[17,2,3,7500,'COMPLETED',6,124],[18,1,5,35000,'COMPLETED',26,120],
+  [19,3,0,45000,'COMPLETED',32,116],[20,0,4,22000,'COMPLETED',18,113],[21,5,2,60000,'FLAGGED',78,109],
+  [22,1,3,9800,'COMPLETED',10,105],[23,2,5,31500,'COMPLETED',24,101],[24,4,1,55000,'FLAGGED',72,97],
+  [25,3,2,14000,'COMPLETED',12,93],[26,0,3,85000,'FLAGGED',86,89],[27,5,0,6500,'COMPLETED',5,85],
+  [28,1,2,43000,'COMPLETED',28,81],[29,2,4,19500,'COMPLETED',17,78],[30,3,5,7800,'COMPLETED',8,74],
+  [31,4,3,52000,'FLAGGED',66,70],[32,0,1,33000,'COMPLETED',25,66],[33,5,3,11200,'COMPLETED',11,62],
+  [34,1,4,72000,'FLAGGED',79,58],[35,2,0,8300,'COMPLETED',7,54],[36,3,1,16500,'COMPLETED',15,50],
+  [37,0,5,25000,'COMPLETED',20,46],[38,4,2,38500,'COMPLETED',29,42],[39,5,1,14200,'COMPLETED',13,38],
+  [40,1,0,67000,'FLAGGED',76,34],[41,2,3,9100,'COMPLETED',9,30],[42,3,4,28000,'COMPLETED',22,26],
+  [43,0,2,4800,'COMPLETED',4,22],[44,5,4,21500,'PENDING',18,18],[45,1,3,36000,'COMPLETED',27,14],
+  [46,4,0,82000,'FLAGGED',87,10],[47,2,5,13700,'COMPLETED',12,7],[48,3,0,47000,'PROCESSING',35,4],
+  [49,0,1,15000,'COMPLETED',14,2],[50,5,4,75000,'FLAGGED',71,1],
+]
+
+const STATS = {
+  totalTransactions:247, totalVolume:4820000, flaggedTransactions:18,
+  fraudRate:7.3, successRate:89.5, completedTransactions:221, pendingTransactions:8
+}
+
+let TRANSACTIONS = []
+let ALERTS = []
+let nextTxnId = 51
+let currentTab = 'dashboard'
+let feedFilter = 'ALL'
+let chatStreaming = false
+let chatHasSession = false
+
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function fmt(n){ return new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:0,maximumFractionDigits:0}).format(n) }
+function fmtFull(n){ return new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(n) }
+function fmtVol(n){ if(n>=1e6)return`£${(n/1e6).toFixed(2)}M`; if(n>=1e3)return`£${(n/1e3).toFixed(0)}K`; return`£${n}` }
+function fmtTime(ms){ const d=new Date(ms); return d.toLocaleTimeString('en-GB') }
+function fmtDateTime(ms){ const d=new Date(ms); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB') }
+function riskDot(r){ return r>=60?'bg-red-500':r>=30?'bg-amber-400':'bg-emerald-500' }
+function riskTxt(r){ return r>=60?'text-red-500':r>=30?'text-amber-500':'text-emerald-600 dark:text-emerald-400' }
+
+const STATUS_BADGE = {
+  COMPLETED: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20',
+  FLAGGED:   'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/20',
+  PROCESSING:'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20',
+  PENDING:   'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/20',
+  FAILED:    'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-500/20',
+}
+const STATUS_DOT = { COMPLETED:'bg-emerald-500', FLAGGED:'bg-red-500', PROCESSING:'bg-blue-500', PENDING:'bg-amber-500', FAILED:'bg-slate-400' }
+const STATUS_TICKER = { COMPLETED:'text-emerald-600 dark:text-emerald-400', FLAGGED:'text-red-600 dark:text-red-400', PROCESSING:'text-blue-600 dark:text-blue-400', PENDING:'text-amber-600 dark:text-amber-400' }
+
+// ════════════════════════════════════════════════════════════
+// BUILD DATA
+// ════════════════════════════════════════════════════════════
+function buildData() {
+  const now = Date.now()
+  TRANSACTIONS = TXN_SEED.map(([id,si,ri,amount,status,risk,mins]) => ({
+    id, reference:`PF-20260617-${String(id).padStart(3,'0')}`,
+    senderName:BANKS[si].name, senderAccountNumber:BANKS[si].num,
+    receiverName:BANKS[ri].name, receiverAccountNumber:BANKS[ri].num,
+    senderId:BANKS[si].id, receiverId:BANKS[ri].id,
+    amount, currency:'GBP', status, riskScore:risk,
+    timestamp:now - mins*60*1000
+  }))
+  ALERTS = TRANSACTIONS.filter(t=>t.status==='FLAGGED').map((t,i)=>{
+    const types = ['HIGH_AMOUNT','HIGH_AMOUNT','FRAUD_DETECTED','HIGH_AMOUNT','HIGH_AMOUNT','HIGH_AMOUNT','FRAUD_DETECTED','FRAUD_DETECTED',
+                   'HIGH_AMOUNT','FRAUD_DETECTED','HIGH_AMOUNT','HIGH_AMOUNT','HIGH_AMOUNT','HIGH_AMOUNT','HIGH_AMOUNT','HIGH_AMOUNT','HIGH_AMOUNT','FRAUD_DETECTED']
+    const type = types[i] || 'HIGH_AMOUNT'
+    const rules = t.riskScore>=80?'HIGH_AMOUNT + ROUND_NUMBER + HIGH_RISK_ACCOUNT':t.riskScore>=70?'HIGH_AMOUNT + HIGH_RISK_ACCOUNT':'HIGH_AMOUNT'
+    return { ...t, alertType:type, description:`${t.senderName} → ${t.receiverName}: ${fmt(t.amount)} — Rules: ${rules}` }
+  })
+}
+
+// ════════════════════════════════════════════════════════════
+// THEME
+// ════════════════════════════════════════════════════════════
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark')
+  const dark = document.documentElement.classList.contains('dark')
+  document.getElementById('icon-sun').classList.toggle('hidden',!dark)
+  document.getElementById('icon-moon').classList.toggle('hidden',dark)
+  refreshCharts()
+}
+
+// ════════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════════
+const TABS = [
+  { id:'dashboard',    label:'Dashboard',    icon:'<polyline points="3 9 12 2 21 9"/><polyline points="9 22 9 12 15 12 15 22"/><path d="M3 9v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9"/>' },
+  { id:'payments',     label:'Send Payment', icon:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>' },
+  { id:'transactions', label:'Live Feed',    icon:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
+  { id:'alerts',       label:'Fraud Alerts', icon:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' },
+  { id:'ai',           label:'AI Analyst',   icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+]
+
+function renderTabs() {
+  document.getElementById('tab-nav').innerHTML = TABS.map(t=>`
+    <button onclick="switchTab('${t.id}')" id="tabBtn-${t.id}"
+      class="tab-btn relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-all ${
+        t.id===currentTab
+          ? t.id==='ai'
+            ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+            : 'border-blue-500 text-blue-600 dark:text-white'
+          : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+      }">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
+      ${t.label}
+    </button>`).join('')
+}
+
+function switchTab(id) {
+  currentTab = id
+  TABS.forEach(t=>{
+    document.getElementById('tab-'+t.id).style.display = t.id===id?'block':'none'
+  })
+  renderTabs()
+}
+
+// ════════════════════════════════════════════════════════════
+// TICKER
+// ════════════════════════════════════════════════════════════
+function renderTicker() {
+  const items = TRANSACTIONS.slice(0,20)
+  const doubled = [...items,...items]
+  document.getElementById('ticker-inner').innerHTML = doubled.map(t=>`
+    <span class="inline-flex items-center gap-1.5 text-xs flex-shrink-0">
+      <span class="text-slate-600 dark:text-slate-300 font-medium">${t.senderName.replace(' PLC','').replace(' Bank','')}</span>
+      <span class="text-slate-300 dark:text-slate-600">→</span>
+      <span class="text-slate-600 dark:text-slate-300 font-medium">${t.receiverName.replace(' PLC','').replace(' Bank','')}</span>
+      <span class="font-mono font-semibold text-slate-900 dark:text-white">${fmt(t.amount)}</span>
+      <span class="font-bold text-[10px] ${STATUS_TICKER[t.status]||'text-slate-400'}">${t.status}</span>
+      <span class="text-slate-200 dark:text-slate-700 mx-1">|</span>
+    </span>`).join('')
+}
+
+// ════════════════════════════════════════════════════════════
+// STAT CARDS
+// ════════════════════════════════════════════════════════════
+const CARD_COLORS = {
+  blue:  {bg:'bg-blue-50 dark:bg-blue-500/10',   border:'border-blue-200 dark:border-blue-500/20',   icon:'text-blue-600 dark:text-blue-400',   val:'text-blue-700 dark:text-blue-300'},
+  green: {bg:'bg-emerald-50 dark:bg-emerald-500/10',border:'border-emerald-200 dark:border-emerald-500/20',icon:'text-emerald-600 dark:text-emerald-400',val:'text-emerald-700 dark:text-emerald-300'},
+  red:   {bg:'bg-red-50 dark:bg-red-500/10',     border:'border-red-200 dark:border-red-500/20',     icon:'text-red-600 dark:text-red-400',     val:'text-red-700 dark:text-red-300'},
+  yellow:{bg:'bg-amber-50 dark:bg-amber-500/10', border:'border-amber-200 dark:border-amber-500/20', icon:'text-amber-600 dark:text-amber-400', val:'text-amber-700 dark:text-amber-300'},
+  purple:{bg:'bg-purple-50 dark:bg-purple-500/10',border:'border-purple-200 dark:border-purple-500/20',icon:'text-purple-600 dark:text-purple-400',val:'text-purple-700 dark:text-purple-300'},
+}
+const CARD_ICONS = {
+  activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+  dollar:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  trending:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  arrows:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  percent:'<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+}
+function statCard(label,value,sub,iconPath,color) {
+  const c = CARD_COLORS[color]||CARD_COLORS.blue
+  return `<div class="rounded-xl border ${c.border} ${c.bg} p-5 flex items-start gap-4 transition-colors duration-200">
+    <div class="p-2.5 rounded-lg bg-white dark:bg-white/5 shadow-sm ${c.icon} flex-shrink-0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg>
+    </div>
+    <div class="min-w-0">
+      <p class="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">${label}</p>
+      <p class="text-2xl font-bold mt-1 ${c.val} truncate">${value}</p>
+      ${sub?`<p class="text-slate-400 dark:text-slate-500 text-xs mt-1">${sub}</p>`:''}
+    </div>
+  </div>`
+}
+function renderStatCards() {
+  const avg = TRANSACTIONS.filter(t=>t.status==='COMPLETED').reduce((s,t)=>s+t.amount,0) / Math.max(1,TRANSACTIONS.filter(t=>t.status==='COMPLETED').length)
+  document.getElementById('stat-cards').innerHTML =
+    statCard('Total Transactions',STATS.totalTransactions,`${STATS.pendingTransactions} in-flight`,CARD_ICONS.activity,'blue') +
+    statCard('Settled Volume',fmtVol(STATS.totalVolume),'Completed payments',CARD_ICONS.dollar,'green') +
+    statCard('Fraud Flags',STATS.flaggedTransactions,`${STATS.fraudRate}% fraud rate`,CARD_ICONS.shield,'red') +
+    statCard('Success Rate',`${STATS.successRate}%`,`${STATS.completedTransactions} completed`,CARD_ICONS.trending,'purple') +
+    statCard('Avg Transaction',fmtVol(avg),'Completed payments',CARD_ICONS.arrows,'yellow') +
+    statCard('In-Flight',STATS.pendingTransactions,'Pending + processing',CARD_ICONS.percent,'blue')
+}
+
+// ════════════════════════════════════════════════════════════
+// TOP BANKS
+// ════════════════════════════════════════════════════════════
+function renderTopBanks() {
+  const map = {}
+  TRANSACTIONS.forEach(t=>{
+    if(!map[t.senderName]) map[t.senderName]={name:t.senderName,sent:0,sentAmt:0,received:0,flags:0}
+    map[t.senderName].sent++; map[t.senderName].sentAmt+=t.amount
+    if(t.status==='FLAGGED') map[t.senderName].flags++
+  })
+  TRANSACTIONS.forEach(t=>{
+    if(!map[t.receiverName]) map[t.receiverName]={name:t.receiverName,sent:0,sentAmt:0,received:0,flags:0}
+    map[t.receiverName].received++
+  })
+  const banks = Object.values(map).sort((a,b)=>b.sentAmt-a.sentAmt).slice(0,6)
+  const max = Math.max(...banks.map(b=>b.sentAmt),1)
+  document.getElementById('top-banks').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-slate-900 dark:text-white font-semibold text-sm flex items-center gap-2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Top Banks by Volume
+      </h3>
+      <span class="text-slate-400 text-xs">By sent amount</span>
+    </div>
+    <div class="space-y-3">${banks.map((b,i)=>`
+      <div class="space-y-1">
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-slate-400 font-mono w-4 text-right flex-shrink-0">${i+1}</span>
+            <span class="text-slate-700 dark:text-slate-200 font-medium truncate">${b.name}</span>
+          </div>
+          <div class="flex items-center gap-3 flex-shrink-0 ml-2">
+            <span class="text-slate-500 dark:text-slate-400 text-[10px]">${b.sent} sent · ${b.received} recv</span>
+            ${b.flags>0?`<span class="bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 dark:border-red-500/20">⚠ ${b.flags}</span>`:''}
+            <span class="text-slate-700 dark:text-slate-300 font-mono font-semibold">${fmtVol(b.sentAmt)}</span>
+          </div>
+        </div>
+        <div class="h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden ml-6">
+          <div class="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full" style="width:${(b.sentAmt/max*100).toFixed(1)}%"></div>
+        </div>
+      </div>`).join('')}
+    </div>`
+}
+
+// ════════════════════════════════════════════════════════════
+// ACCOUNT BALANCES
+// ════════════════════════════════════════════════════════════
+function renderAccountBalances() {
+  const max = 6100000
+  document.getElementById('account-balances').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-slate-900 dark:text-white font-semibold text-sm flex items-center gap-2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M3 22h18"/><path d="M6 18V11"/><path d="M10 18V11"/><path d="M14 18V11"/><path d="M18 18V11"/><path d="M12 2L2 7h20L12 2z"/></svg>
+        Account Balances
+      </h3>
+    </div>
+    <div class="space-y-3">${BANKS.map(acc=>{
+      const pct = Math.min((acc.balance/max)*100,100).toFixed(1)
+      return `<div class="flex items-center gap-3 py-1">
+        <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+          <span class="text-blue-600 dark:text-blue-400 text-[10px] font-bold">${acc.name.charAt(0)}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-baseline mb-1">
+            <span class="text-slate-700 dark:text-slate-200 text-xs font-medium truncate">${acc.name}</span>
+            <span class="text-slate-600 dark:text-slate-300 text-xs font-mono ml-2 flex-shrink-0">${fmtVol(acc.balance)}</span>
+          </div>
+          <div class="h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-700" style="width:${pct}%"></div>
+          </div>
+        </div>
+      </div>`
+    }).join('')}</div>`
+}
+
+// ════════════════════════════════════════════════════════════
+// RECENT TRANSACTIONS TABLE
+// ════════════════════════════════════════════════════════════
+function renderRecentTxns() {
+  const recent = TRANSACTIONS.slice(0,8)
+  document.getElementById('recent-txns').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-slate-900 dark:text-white font-semibold text-sm flex items-center gap-2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Recent Transactions
+      </h3>
+      <span class="text-slate-400 text-xs">Last 8</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="border-b border-slate-100 dark:border-white/[0.04]">
+            ${['Reference','Sender','Receiver','Amount','Currency','Status','Risk Score','Time'].map(h=>`<th class="text-left text-slate-400 font-medium pb-3 pr-4 uppercase tracking-wider text-[10px]">${h}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50 dark:divide-white/[0.03]">
+          ${recent.map(t=>{
+            const s = STATUS_BADGE[t.status]||STATUS_BADGE.PENDING
+            const dot = STATUS_DOT[t.status]||'bg-slate-400'
+            return `<tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+              <td class="py-3 pr-4 font-mono text-slate-400">${t.reference.slice(-12)}</td>
+              <td class="py-3 pr-4 text-slate-700 dark:text-slate-200 max-w-[130px] truncate font-medium">${t.senderName}</td>
+              <td class="py-3 pr-4 text-slate-700 dark:text-slate-200 max-w-[130px] truncate">${t.receiverName}</td>
+              <td class="py-3 pr-4 font-mono font-bold text-slate-900 dark:text-white">${fmt(t.amount)}</td>
+              <td class="py-3 pr-4 text-slate-400">GBP</td>
+              <td class="py-3 pr-4"><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${s}"><span class="w-1.5 h-1.5 rounded-full ${dot}"></span>${t.status}</span></td>
+              <td class="py-3 pr-4">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-14 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden"><div class="h-full rounded-full ${riskDot(t.riskScore)}" style="width:${t.riskScore}%"></div></div>
+                  <span class="text-[10px] font-bold ${riskTxt(t.riskScore)}">${t.riskScore}</span>
+                </div>
+              </td>
+              <td class="py-3 text-slate-400 font-mono">${fmtTime(t.timestamp)}</td>
+            </tr>`}).join('')}
+        </tbody>
+      </table>
+    </div>`
+}
+
+// ════════════════════════════════════════════════════════════
+// CHARTS
+// ════════════════════════════════════════════════════════════
+let chartLive, chartDonut, chartRisk
+
+function chartDefaults() {
+  const dark = document.documentElement.classList.contains('dark')
+  return { gridColor:'rgba(128,128,128,0.1)', tickColor:'#94a3b8', tooltipBg:dark?'#141e35':'#fff', tooltipBorder:dark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)' }
+}
+
+function initLiveChart() {
+  const now = Date.now()
+  const labels = [], completed = [], flagged = []
+  for(let i=14;i>=0;i--){
+    const t = new Date(now - i*60*1000)
+    const label = t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0')
+    const tMin = now-i*60*1000, tMax = now-(i-1)*60*1000
+    const inBucket = TRANSACTIONS.filter(tx=>tx.timestamp>=tMin&&tx.timestamp<tMax)
+    labels.push(label)
+    completed.push(inBucket.filter(tx=>tx.status==='COMPLETED').length)
+    flagged.push(inBucket.filter(tx=>tx.status==='FLAGGED').length)
+  }
+  const d = chartDefaults()
+  chartLive = new Chart(document.getElementById('chart-live').getContext('2d'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Completed',data:completed,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.2)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
+        {label:'Flagged',data:flagged,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.2)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:d.tickColor,font:{size:11}}},tooltip:{backgroundColor:d.tooltipBg,borderColor:d.tooltipBorder,borderWidth:1,titleColor:d.tickColor,bodyColor:'#f1f5f9'}},
+      scales:{
+        x:{ticks:{color:d.tickColor,font:{size:11}},grid:{color:d.gridColor},border:{display:false}},
+        y:{ticks:{color:d.tickColor,font:{size:11}},grid:{color:d.gridColor},border:{display:false},beginAtZero:true}
+      }
+    }
+  })
+}
+
+function initDonutChart() {
+  const counts = {}
+  TRANSACTIONS.forEach(t=>counts[t.status]=(counts[t.status]||0)+1)
+  const order = ['COMPLETED','FLAGGED','PROCESSING','PENDING','FAILED']
+  const colors = {COMPLETED:'#10b981',FLAGGED:'#ef4444',PROCESSING:'#3b82f6',PENDING:'#f59e0b',FAILED:'#64748b'}
+  const entries = order.filter(k=>counts[k]).map(k=>({label:k,value:counts[k],color:colors[k]}))
+  const total = entries.reduce((s,e)=>s+e.value,0)
+  const d = chartDefaults()
+  chartDonut = new Chart(document.getElementById('chart-donut').getContext('2d'), {
+    type:'doughnut',
+    data:{labels:entries.map(e=>e.label),datasets:[{data:entries.map(e=>e.value),backgroundColor:entries.map(e=>e.color),borderWidth:2,borderColor:'transparent',hoverOffset:4}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{display:false},tooltip:{backgroundColor:d.tooltipBg,borderColor:d.tooltipBorder,borderWidth:1,titleColor:d.tickColor,bodyColor:'#f1f5f9'}}
+    }
+  })
+  document.getElementById('donut-legend').innerHTML = entries.map(e=>`
+    <div class="flex items-center justify-between text-xs">
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:${e.color}"></span><span class="text-slate-600 dark:text-slate-400">${e.label}</span></div>
+      <div class="flex items-center gap-2">
+        <div class="w-16 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(e.value/total*100).toFixed(0)}%;background:${e.color}"></div></div>
+        <span class="text-slate-500 dark:text-slate-400 w-6 text-right font-mono">${e.value}</span>
+      </div>
+    </div>`).join('')
+}
+
+function initRiskChart() {
+  const buckets = [{label:'0–19',min:0,max:19,color:'#10b981'},{label:'20–39',min:20,max:39,color:'#3b82f6'},{label:'40–59',min:40,max:59,color:'#f59e0b'},{label:'60–79',min:60,max:79,color:'#f97316'},{label:'80–100',min:80,max:100,color:'#ef4444'}]
+  const counts = buckets.map(b=>TRANSACTIONS.filter(t=>t.riskScore>=b.min&&t.riskScore<=b.max).length)
+  const d = chartDefaults()
+  chartRisk = new Chart(document.getElementById('chart-risk').getContext('2d'), {
+    type:'bar',
+    data:{labels:buckets.map(b=>b.label),datasets:[{data:counts,backgroundColor:buckets.map(b=>b.color),borderRadius:3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:d.tooltipBg,borderColor:d.tooltipBorder,borderWidth:1,titleColor:d.tickColor,bodyColor:'#f1f5f9',callbacks:{title:([i])=>`Risk ${i.label}`,label:i=>`${i.raw} transactions`}}},
+      scales:{
+        x:{ticks:{color:d.tickColor,font:{size:10}},grid:{display:false},border:{display:false}},
+        y:{ticks:{color:d.tickColor,font:{size:10}},grid:{color:d.gridColor},border:{display:false},beginAtZero:true}
+      }
+    }
+  })
+}
+
+function refreshCharts() {
+  if(chartLive) chartLive.destroy()
+  if(chartDonut) chartDonut.destroy()
+  if(chartRisk) chartRisk.destroy()
+  initLiveChart(); initDonutChart(); initRiskChart()
+}
+
+// ════════════════════════════════════════════════════════════
+// PAYMENT FORM
+// ════════════════════════════════════════════════════════════
+function renderPaymentForm() {
+  const sel = s => BANKS.map(b=>`<option value="${b.id}">${b.name} — ${fmt(b.balance)}</option>`).join('')
+  document.getElementById('pay-sender').innerHTML = sel()
+  document.getElementById('pay-receiver').innerHTML = BANKS.filter((_,i)=>i!==0).map(b=>`<option value="${b.id}">${b.name}</option>`).join('')
+}
+function setAmount(n){ document.getElementById('pay-amount').value = n }
+function handlePayment(e) {
+  e.preventDefault()
+  const sId = parseInt(document.getElementById('pay-sender').value)
+  const rId = parseInt(document.getElementById('pay-receiver').value)
+  const amount = parseFloat(document.getElementById('pay-amount').value)
+  const desc = document.getElementById('pay-desc').value
+  if(sId===rId){ showPayFeedback('error','Sender and receiver must be different accounts.'); return }
+  // Calculate risk
+  let risk = Math.floor(Math.random()*20)+5
+  if(amount>50000) risk+=50
+  if(amount%5000===0) risk+=30
+  risk = Math.min(risk,100)
+  const status = risk>=60?'FLAGGED':'COMPLETED'
+  const ref = `PF-20260617-${String(nextTxnId++).padStart(3,'0')}`
+  const txn = {
+    id:nextTxnId, reference:ref,
+    senderName:BANKS.find(b=>b.id===sId).name, senderAccountNumber:BANKS.find(b=>b.id===sId).num,
+    receiverName:BANKS.find(b=>b.id===rId).name, receiverAccountNumber:BANKS.find(b=>b.id===rId).num,
+    senderId:sId, receiverId:rId, amount, currency:'GBP', status, riskScore:risk,
+    timestamp:Date.now()
+  }
+  TRANSACTIONS.unshift(txn)
+  if(status==='FLAGGED'){
+    ALERTS.unshift({...txn,alertType:'HIGH_AMOUNT',description:`${txn.senderName} → ${txn.receiverName}: ${fmt(amount)} — Rules: HIGH_AMOUNT${amount%5000===0?' + ROUND_NUMBER':''}${risk>=80?' + HIGH_RISK_ACCOUNT':''}`})
+    STATS.flaggedTransactions++
+  }
+  STATS.totalTransactions++; STATS.totalVolume+=amount
+  showPayFeedback('success',`Payment ${ref} submitted — ${status==='FLAGGED'?'⚠ FLAGGED (risk '+risk+')':'processing now.'}.`)
+  document.getElementById('pay-amount').value=''; document.getElementById('pay-desc').value=''
+  renderStatCards(); renderRecentTxns(); renderFeed(); renderTopBanks()
+}
+function showPayFeedback(type,msg){
+  const el=document.getElementById('pay-feedback')
+  el.className=''
+  el.classList.remove('hidden')
+  const isOk = type==='success'
+  el.innerHTML=`<div class="flex items-start gap-2 p-3 rounded-lg anim-slide ${isOk?'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300':'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300'} text-xs">${isOk?'✓':' ✕'} ${msg}</div>`
+}
+
+// ════════════════════════════════════════════════════════════
+// LIVE FEED
+// ════════════════════════════════════════════════════════════
+const FILTERS = ['ALL','PENDING','PROCESSING','COMPLETED','FLAGGED']
+function renderFeedFilters(){
+  document.getElementById('feed-filters').innerHTML = FILTERS.map(f=>`
+    <button onclick="setFilter('${f}')" class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+      feedFilter===f?'bg-blue-600 border-blue-500 text-white':'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+    }">${f}<span class="ml-1.5 text-[10px] opacity-60">${f==='ALL'?TRANSACTIONS.length:TRANSACTIONS.filter(t=>t.status===f).length}</span></button>`).join('')
+}
+function setFilter(f){ feedFilter=f; renderFeed() }
+function renderFeed(){
+  renderFeedFilters()
+  const visible = feedFilter==='ALL'?TRANSACTIONS:TRANSACTIONS.filter(t=>t.status===feedFilter)
+  const list = document.getElementById('feed-list')
+  if(visible.length===0){ list.innerHTML=`<div class="py-16 text-center text-slate-400 text-sm">No transactions match this filter.</div>`; return }
+  list.innerHTML = visible.map((t,i)=>{
+    const s = STATUS_BADGE[t.status]||STATUS_BADGE.PENDING
+    const dot = STATUS_DOT[t.status]||'bg-slate-400'
+    const flagged = t.status==='FLAGGED'
+    return `<div class="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.02] ${flagged?'bg-red-50/50 dark:bg-red-500/[0.03]':''}">
+      <div class="w-1 h-10 rounded-full flex-shrink-0 overflow-hidden bg-slate-100 dark:bg-white/5">
+        <div class="w-full rounded-full ${riskDot(t.riskScore)}" style="height:${t.riskScore}%"></div>
+      </div>
+      <div class="flex-1 min-w-0 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div class="min-w-0"><p class="text-slate-800 dark:text-slate-200 text-sm font-medium truncate">${t.senderName}</p><p class="text-slate-400 text-xs truncate">${t.senderAccountNumber}</p></div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-300 dark:text-slate-600 flex-shrink-0"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        <div class="min-w-0"><p class="text-slate-800 dark:text-slate-200 text-sm font-medium truncate">${t.receiverName}</p><p class="text-slate-400 text-xs truncate">${t.receiverAccountNumber}</p></div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <p class="font-mono font-bold text-sm ${flagged?'text-red-600 dark:text-red-300':'text-slate-900 dark:text-white'}">${fmt(t.amount)}</p>
+        <p class="text-slate-400 text-[10px]">GBP</p>
+      </div>
+      <span class="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold ${s}"><span class="w-1.5 h-1.5 rounded-full ${dot}"></span>${t.status}</span>
+      ${flagged?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" class="flex-shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`:''}
+      <span class="text-slate-400 text-[10px] font-mono flex-shrink-0 w-16 text-right">${fmtTime(t.timestamp)}</span>
+    </div>`}).join('')
+}
+
+// ════════════════════════════════════════════════════════════
+// FRAUD ALERTS
+// ════════════════════════════════════════════════════════════
+const ALERT_META = {
+  HIGH_AMOUNT:       {color:'text-red-600 dark:text-red-400',bg:'bg-red-50 dark:bg-red-500/10',border:'border-red-200 dark:border-red-500/20',label:'High Amount'},
+  RAPID_SUCCESSION:  {color:'text-orange-600 dark:text-orange-400',bg:'bg-orange-50 dark:bg-orange-500/10',border:'border-orange-200 dark:border-orange-500/20',label:'Rapid Succession'},
+  FRAUD_DETECTED:    {color:'text-red-600 dark:text-red-400',bg:'bg-red-50 dark:bg-red-500/10',border:'border-red-200 dark:border-red-500/20',label:'Fraud Detected'},
+  SUSPICIOUS_PATTERN:{color:'text-amber-600 dark:text-amber-400',bg:'bg-amber-50 dark:bg-amber-500/10',border:'border-amber-200 dark:border-amber-500/20',label:'Suspicious Pattern'},
+}
+function renderAlerts(){
+  const el=document.getElementById('alerts-list')
+  if(!ALERTS.length){el.innerHTML=`<div class="flex flex-col items-center justify-center py-24 gap-3"><div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-600 dark:text-emerald-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><p class="text-slate-600 dark:text-slate-400 text-sm font-medium">No fraud alerts</p></div>`;return}
+  el.innerHTML=`<div class="flex items-center gap-2 mb-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><h2 class="text-slate-900 dark:text-white font-semibold text-sm">${ALERTS.length} Alert${ALERTS.length!==1?'s':''} Detected</h2></div>`+
+  ALERTS.map(a=>{
+    const m=ALERT_META[a.alertType]||ALERT_META.HIGH_AMOUNT
+    const r=a.riskScore||0
+    const rColor=r>=80?'bg-red-500':r>=60?'bg-orange-500':'bg-amber-400'
+    return `<div class="rounded-xl border ${m.border} ${m.bg} p-4 anim-slide transition-colors duration-200">
+      <div class="flex items-start gap-3">
+        <div class="p-2 rounded-lg bg-white dark:bg-white/5 flex-shrink-0 ${m.color} shadow-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="text-xs font-bold uppercase tracking-wider ${m.color}">${m.label}</span>
+            <span class="text-slate-400 text-[10px] font-mono">${fmtDateTime(a.timestamp)}</span>
+          </div>
+          <p class="text-slate-700 dark:text-slate-200 text-sm mb-2">${a.description}</p>
+          <div class="flex items-center gap-4 text-xs flex-wrap">
+            <div><span class="text-slate-400">From: </span><span class="text-slate-700 dark:text-slate-300 font-medium">${a.senderName}</span></div>
+            <div><span class="text-slate-400">To: </span><span class="text-slate-700 dark:text-slate-300 font-medium">${a.receiverName}</span></div>
+            <div><span class="text-slate-400">Amount: </span><span class="text-slate-900 dark:text-white font-mono font-semibold">${fmtFull(a.amount)}</span></div>
+          </div>
+          <div class="mt-3 flex items-center gap-2">
+            <span class="text-slate-400 text-[10px] w-14">Risk score</span>
+            <div class="flex-1 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden"><div class="h-full rounded-full ${rColor} transition-all" style="width:${r}%"></div></div>
+            <span class="text-xs font-bold ${r>=60?'text-red-500 dark:text-red-400':'text-amber-600 dark:text-amber-400'}">${r}</span>
+          </div>
+        </div>
+      </div>
+    </div>`}).join('')
+}
+
+// ════════════════════════════════════════════════════════════
+// AI CHAT
+// ════════════════════════════════════════════════════════════
+const SUGGESTIONS = [
+  "What's our fraud rate today?",
+  "Show me the 5 most recent transactions",
+  "Explain the fraud detection rules",
+  "Which bank has the highest balance?",
+  "Generate a fraud narrative for PF-20261017-001",
+  "Are there any critical risk alerts right now?",
+]
+
+const AI_RESPONSES = {
+  "what's our fraud rate today?":
+`Based on today's data, our fraud rate stands at **7.3%** — we've flagged 18 out of 247 transactions for review.
+
+Key fraud indicators:
+• 3 transactions with risk scores above 90 (Critical): PF-002 (risk 92), PF-022 (risk 95), PF-015 (risk 88)
+• Meridian Bank PLC showing the highest concentration of flagged outgoing payments
+• PF-022 (Crestfield → Harrington, £200,000) is our highest-risk transaction today at risk score 95
+
+The most active fraud rule triggering is HIGH_AMOUNT (transactions over £50K), accounting for all 18 flags. ROUND_NUMBER and HIGH_RISK_ACCOUNT rules are compounding risk scores on several transactions.
+
+Fraud rate is within acceptable parameters, though Meridian's pattern warrants close monitoring.`,
+
+  "show me the 5 most recent transactions":
+`Here are the 5 most recent transactions:
+
+1. PF-20260617-050 — Caledonian Bank → Crestfield Group PLC · £75,000 · FLAGGED · Risk: 71
+2. PF-20260617-049 — Vantage Bank PLC → Albion Bank PLC · £15,000 · COMPLETED · Risk: 14
+3. PF-20260617-048 — Meridian Bank PLC → Vantage Bank PLC · £47,000 · PROCESSING · Risk: 35
+4. PF-20260617-047 — Harrington PLC → Caledonian Bank · £13,700 · COMPLETED · Risk: 12
+5. PF-20260617-046 — Crestfield Group PLC → Vantage Bank PLC · £82,000 · FLAGGED · Risk: 87
+
+Two of the five most recent transactions are flagged. PF-046 in particular is triggering HIGH_AMOUNT and HIGH_RISK_ACCOUNT rules simultaneously. Would you like me to generate a full investigation narrative?`,
+
+  "explain the fraud detection rules":
+`PayFlow uses four fraud detection rules that compound risk scores:
+
+1. HIGH_AMOUNT (+50 risk points)
+Triggered when a transaction exceeds £50,000. Large interbank transfers carry elevated settlement risk.
+
+2. RAPID_SUCCESSION (+70 risk points)
+Triggered when an account sends 3 or more payments within a 60-second window. Indicates potential automated fraud or account takeover.
+
+3. ROUND_NUMBER (+30 risk points)
+Triggered when a transaction amount is an exact multiple of £5,000. Round numbers are statistically over-represented in fraudulent transfers.
+
+4. HIGH_RISK_ACCOUNT (+40 risk points)
+Applied when either the sender or receiver account has a history of flagged transactions. Risk propagates through account relationships.
+
+Flagging threshold: Any transaction scoring 60 or above is automatically flagged for review. Multiple rules compound — a £75,000 round-number payment (HIGH_AMOUNT + ROUND_NUMBER = 80) would be flagged as Critical.`,
+
+  "which bank has the highest balance?":
+`Vantage Bank PLC holds the highest balance in the system at £6,100,000.
+
+Full balance ranking:
+1. Vantage Bank PLC     — £6,100,000
+2. Albion Bank PLC      — £5,000,000
+3. Harrington PLC       — £4,200,000
+4. Meridian Bank PLC    — £3,500,000
+5. Crestfield Group PLC — £2,750,000
+6. Caledonian Bank      — £1,800,000
+
+Despite holding the highest balance, Vantage Bank is also the most active sender today — their liquidity position reflects significant inbound settlement activity. Note that Meridian Bank, ranked 4th by balance, is responsible for the highest volume of flagged transactions. This pattern warrants monitoring.`,
+
+  "generate a fraud narrative for pf-20261017-001":
+`FRAUD INVESTIGATION NARRATIVE
+Reference: PF-20261017-001  |  Risk Score: 85  |  Classification: CRITICAL
+
+Transaction Summary
+Vantage Bank PLC transferred £125,000 to Albion Bank PLC. The transaction triggered two fraud rules: HIGH_AMOUNT (+50) and HIGH_RISK_ACCOUNT (+40), resulting in a composite risk score of 85.
+
+Risk Factors Identified
+• Amount of £125,000 significantly exceeds the £50,000 HIGH_AMOUNT threshold
+• Vantage Bank PLC has 4 prior flagged transactions in the rolling 30-day window
+• Transfer occurred during the morning surge window (08:00–10:00), a high-fraud-density period
+• No matching inbound settlement from Albion Bank PLC to offset the transfer
+
+Recommended Actions
+1. Place a 24-hour hold on the settlement pending manual review
+2. Request transaction documentation from Vantage Bank PLC compliance team
+3. Cross-reference with Albion Bank PLC expected receivables ledger
+4. Escalate to Risk Operations if documentation is not received within 4 hours
+
+Analyst Assessment
+While the transfer amount and sender risk profile are concerning, no pattern of rapid succession or round-number manipulation was detected. Estimated fraud probability: 62%. Recommend hold-and-review rather than immediate block.`,
+
+  "are there any critical risk alerts right now?":
+`Yes — 3 transactions are currently at Critical risk (score 80–100):
+
+🚨 PF-20260617-022 | Risk: 95
+Crestfield Group PLC → Harrington PLC · £200,000
+Rules: HIGH_AMOUNT + ROUND_NUMBER + HIGH_RISK_ACCOUNT
+
+🚨 PF-20260617-002 | Risk: 92
+Meridian Bank PLC → Crestfield Group PLC · £250,000
+Rules: HIGH_AMOUNT + ROUND_NUMBER + HIGH_RISK_ACCOUNT
+
+🚨 PF-20260617-015 | Risk: 88
+Meridian Bank PLC → Albion Bank PLC · £110,000
+Rules: HIGH_AMOUNT + HIGH_RISK_ACCOUNT
+
+Additionally, 5 transactions are at High risk (60–79). Meridian Bank PLC appears in 2 of the 3 Critical alerts as sender — this pattern warrants immediate investigation. Shall I generate full investigation narratives for these transactions?`
+}
+
+function genericAI(msg) {
+  const m = msg.toLowerCase()
+  if(m.includes('meridian')||m.includes('vantage')||m.includes('albion')||m.includes('harrington')||m.includes('crestfield')||m.includes('caledonian'))
+    return `Analysing bank account data...\n\nAll six demo banks — Vantage Bank PLC, Albion Bank PLC, Harrington PLC, Meridian Bank PLC, Crestfield Group PLC, and Caledonian Bank — are active in today's session.\n\nMeridian Bank PLC has the highest fraud flag count (6 flagged outgoing payments), despite ranking 4th by balance (£3.5M). Vantage Bank PLC leads by balance (£6.1M) and is the top sender by volume.\n\nWould you like a detailed breakdown for a specific bank?`
+  if(m.includes('risk')||m.includes('score'))
+    return `Risk score analysis for today's 247 transactions:\n\n• Clean (0–19): 95 transactions\n• Low (20–39): 82 transactions\n• Medium (40–59): 52 transactions\n• High (60–79): 10 transactions\n• Critical (80–100): 8 transactions\n\nAverage risk score: 34. The 18 flagged transactions all scored 60+, with PF-022 at 95 being the highest.\n\nWould you like me to explain the fraud detection rules in detail?`
+  if(m.includes('transaction')||m.includes('payment')||m.includes('recent'))
+    return `Today's transaction summary:\n\n• Total processed: 247\n• Completed: 221 (89.5% success rate)\n• Flagged: 18 (7.3% fraud rate)\n• Processing: 4 in-flight\n• Pending: 8 awaiting processing\n\nSettled volume: £4.82M\nAverage transaction: £21,900\n\nThe highest single transaction today is PF-002: Meridian Bank PLC → Crestfield Group PLC for £250,000 (risk score 92, flagged Critical).`
+  return `I can help you analyse the PayFlow payment intelligence data.\n\nToday's key metrics:\n• 247 transactions processed · £4.82M total volume\n• 18 fraud flags (7.3% rate) · 3 Critical risk alerts\n• All 6 bank accounts active\n\nYou can ask me about:\n→ Fraud rates and patterns\n→ Transaction details and history\n→ Bank account balances\n→ Fraud detection rules\n→ Investigation narratives for specific transactions\n\nWhat would you like to know?`
+}
+
+let chatMessages = [{role:'assistant',content:"Hello! I'm PayFlow Intelligence, your AI payment analyst.\n\nI can query transaction data, explain fraud patterns, analyse risk, and generate investigation narratives.\n\nWhat would you like to know?"}]
+
+function renderChatMessages() {
+  const el = document.getElementById('chat-messages')
+  el.innerHTML = chatMessages.map((m,i)=>{
+    const isUser = m.role==='user'
+    return `<div class="flex gap-3 ${isUser?'flex-row-reverse':''}">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isUser?'bg-blue-600':'bg-violet-700'} text-white">${isUser?'U':'AI'}</div>
+      <div class="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${isUser?'bg-blue-600/20 border border-blue-700/40 text-blue-900 dark:text-blue-100':'border border-slate-200 dark:border-white/[0.06] text-slate-800 dark:text-slate-200'}" style="${isUser?'':'background:var(--bg-card)'}">
+        <div class="whitespace-pre-wrap">${m.content.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}${m.streaming?'<span class="cursor-blink"></span>':''}</div>
+      </div>
+    </div>`}).join('')
+  el.scrollTop = el.scrollHeight
+}
+
+function renderChatSuggestions() {
+  document.getElementById('chat-suggestions').innerHTML = SUGGESTIONS.map(q=>`
+    <button onclick="chatSendText('${q.replace(/'/g,"\\\'")}')" class="text-xs bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-full px-3 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">${q}</button>`).join('')
+}
+
+function newChatSession() {
+  chatMessages = [{role:'assistant',content:'New session started. How can I help?'}]
+  chatHasSession = false
+  document.getElementById('btn-new-session').classList.add('hidden')
+  renderChatMessages()
+}
+
+function chatSendText(text){ chatDoSend(text) }
+function chatSend(e){ e.preventDefault(); chatDoSend(document.getElementById('chat-input').value.trim()); document.getElementById('chat-input').value='' }
+
+function chatDoSend(text) {
+  if(!text||chatStreaming) return
+  chatStreaming = true
+  document.getElementById('chat-send-btn').disabled = true
+  if(!chatHasSession){ chatHasSession=true; document.getElementById('btn-new-session').classList.remove('hidden') }
+
+  chatMessages.push({role:'user',content:text})
+  chatMessages.push({role:'assistant',content:'',streaming:true})
+  renderChatMessages()
+
+  const key = text.toLowerCase().trim().replace(/[?.!]/g,'')
+  const response = AI_RESPONSES[key] || genericAI(text)
+
+  setTimeout(()=>streamText(response),900)
+}
+
+function streamText(text) {
+  let i=0
+  const idx = chatMessages.length-1
+  function tick(){
+    if(i<text.length){
+      chatMessages[idx].content = text.slice(0,i+1)
+      i += Math.floor(Math.random()*3)+1
+      renderChatMessages()
+      setTimeout(tick, 18)
+    } else {
+      chatMessages[idx].content = text
+      chatMessages[idx].streaming = false
+      chatStreaming = false
+      document.getElementById('chat-send-btn').disabled = false
+      renderChatMessages()
+    }
+  }
+  tick()
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', ()=>{
+  buildData()
+  renderTabs()
+  renderTicker()
+  renderStatCards()
+  renderTopBanks()
+  renderAccountBalances()
+  renderRecentTxns()
+  renderPaymentForm()
+  renderFeed()
+  renderAlerts()
+  renderChatMessages()
+  renderChatSuggestions()
+
+  // Show sun icon since we start dark
+  document.getElementById('icon-sun').classList.remove('hidden')
+  document.getElementById('icon-moon').classList.add('hidden')
+
+  // Init charts after a brief tick so canvas has rendered
+  setTimeout(()=>{ initLiveChart(); initDonutChart(); initRiskChart() }, 50)
+
+  // Ensure dashboard tab panel is block (others none)
+  switchTab('dashboard')
+})
+</script>
+</body>
+</html>

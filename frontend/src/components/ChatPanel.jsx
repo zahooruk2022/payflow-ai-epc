@@ -149,7 +149,7 @@ export default function ChatPanel() {
         <div className="flex items-center gap-2">
           <MessageSquare size={16} className="text-violet-500" />
           <span className="text-slate-900 dark:text-white font-semibold text-sm">PayFlow Intelligence</span>
-          <span className="text-[10px] font-mono text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">Devstral-Small · streaming</span>
+          <span className="text-[10px] font-mono text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">gpt-oss:20b · streaming</span>
         </div>
         {sessionId && (
           <button
