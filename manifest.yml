@@ -1,0 +1,45 @@
+---
+# PayFlow AI EPC — Cloud Foundry deployment manifest
+#
+# Target foundation: api.sys.tpcf.tnz-field-epc.lvn.broadcom.net
+#
+# Before pushing:
+#   1. Check available plans: cf marketplace -e ai-models
+#   2. Create service instances (one-time):
+#        cf create-service ai-models <plan> payflow-ai-chat-tools
+#        cf create-service p.rabbitmq <plan> payflow-rabbitmq
+#        cf create-service p.redis    <plan> payflow-redis
+#   3. Run ./build.sh
+#   4. cf push
+#
+# AI credentials injected automatically via VCAP_SERVICES.
+# No cf set-env needed for AI credentials.
+
+applications:
+  - name: payflow-ai-epc
+    buildpacks:
+      - java_buildpack_offline
+    path: backend/target/payflow-ai.jar
+    instances: 1
+    memory: 1G
+    disk_quota: 512M
+
+    health-check-type: http
+    health-check-http-endpoint: /actuator/health
+
+    services:
+      - payflow-ai-chat-tools    # → spring.ai.openai.chat.base-url + api-key (GenAiVcapPostProcessor)
+      - payflow-rabbitmq         # → spring.rabbitmq.* (java-cfenv-boot)
+      - payflow-redis            # → spring.data.redis.* (java-cfenv-boot)
+
+    env:
+      JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
+      JAVA_OPTS: >-
+        -XX:+UseG1GC
+        -XX:MaxRAMPercentage=65.0
+        -Djava.security.egd=file:/dev/./urandom
+
+      # TODO: Set correct model name after inspecting the service binding.
+      # Run: cf create-service-key payflow-ai-chat-tools temp-key && cf service-key payflow-ai-chat-tools temp-key
+      # Previous EPC plan: chat-and-tools-model
+      AI_CHAT_MODEL: mistralai/Devstral-Small-2507
