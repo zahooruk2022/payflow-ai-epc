@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tanzu Platform for CF — Deployment Journey</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--raised:#1e242d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--amber:#d29922;--violet:#a371f7;--orange:#f0883e;--teal:#39d353;--red:#f85149}
+[data-theme=light]{--bg:#f6f8fa;--card:#fff;--raised:#f6f8fa;--border:#d0d7de;--text:#1f2328;--muted:#636c76;--blue:#0969da;--green:#1a7f37;--amber:#9a6700;--violet:#8250df;--orange:#bc4c00;--teal:#0a7c5c;--red:#d1242f}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;line-height:1.55;transition:background .2s,color .2s;min-height:100vh}
+code{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.8em;color:var(--violet);background:rgba(163,113,247,.1);padding:1px 6px;border-radius:3px}
+
+/* header */
+header{position:sticky;top:0;z-index:200;background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:57px;display:flex;align-items:center;gap:12px}
+.logo-mark{width:26px;height:26px;border-radius:6px;flex-shrink:0;background:linear-gradient(135deg,#58a6ff,#a371f7);display:flex;align-items:center;justify-content:center}
+.logo-text{font-size:14px;font-weight:700;letter-spacing:-.3px}
+.logo-div{color:var(--border);font-size:18px;font-weight:200}
+.logo-sub{font-size:13px;color:var(--muted)}
+.hdr-gap{flex:1}
+.sw-row{display:flex;align-items:center;gap:8px}
+.sw-lbl{font-size:12px;color:var(--muted)}
+.switch{position:relative;display:inline-block;width:38px;height:21px;cursor:pointer}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--border);border-radius:21px;transition:.2s}
+.slider::before{content:'';position:absolute;height:15px;width:15px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:.2s}
+.switch input:checked+.slider{background:var(--blue)}
+.switch input:checked+.slider::before{transform:translateX(17px);background:#fff}
+
+/* page shell */
+.page-shell{display:flex;height:calc(100vh - 57px);overflow:hidden}
+
+/* sidebar */
+.sidebar{width:230px;min-width:230px;flex-shrink:0;height:100%;overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--border);background:var(--card);padding:18px 0 40px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border)}
+@media(max-width:768px){.sidebar{display:none}}
+.wf-toggle{padding:0 12px;margin-bottom:18px;display:flex;flex-direction:column;gap:6px}
+.wf-btn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);width:100%;text-align:left;transition:all .15s}
+.wf-btn:hover{color:var(--text)}
+.wf-btn.active{color:var(--text);background:var(--raised);border-color:var(--wf-c,var(--border))}
+.wf-count{margin-left:auto;font-size:10px;font-weight:500;color:var(--muted)}
+.side-head{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:0 16px;margin-bottom:6px}
+.snav{list-style:none}
+.snav-item{display:flex;align-items:center;gap:8px;padding:6px 16px;cursor:pointer;font-size:12.5px;color:var(--muted);transition:all .12s;border-left:2px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snav-item:hover{color:var(--text);background:var(--raised)}
+.snav-item.active{color:var(--text);border-left-color:var(--step-c,var(--blue));background:var(--raised)}
+.snav-n{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;border:1px solid currentColor;opacity:.6;transition:all .12s}
+.snav-item.active .snav-n{opacity:1;background:var(--step-c,var(--blue));border-color:var(--step-c,var(--blue));color:#fff}
+.snav-divider{height:1px;background:var(--border);margin:12px 14px}
+
+/* main/slide area */
+.main-area{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden}
+
+/* slides */
+.slide{display:none;min-height:calc(100vh - 57px);padding:44px 56px 32px;flex-direction:column}
+.slide.active{display:flex;animation:fadeIn .22s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){.slide{padding:28px 24px 24px}}
+
+/* slide header */
+.sl-eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:14px}
+.sl-cat{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--step-c);margin-bottom:10px}
+.sl-cat::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--step-c)}
+.sl-num-bg{position:absolute;right:56px;top:36px;font-size:160px;font-weight:800;line-height:1;letter-spacing:-8px;opacity:.04;color:var(--step-c);user-select:none;pointer-events:none}
+@media(max-width:900px){.sl-num-bg{font-size:80px;right:24px}}
+.sl-title{font-size:clamp(26px,3.5vw,40px);font-weight:700;letter-spacing:-.6px;line-height:1.1;margin-bottom:12px}
+.sl-desc{font-size:17px;color:var(--muted);max-width:620px;line-height:1.6;margin-bottom:28px}
+
+/* slide body grid */
+.sl-body{display:grid;gap:36px;flex:1}
+.sl-body.has-vis{grid-template-columns:1fr 1fr;align-items:start}
+.sl-body.no-vis{grid-template-columns:1fr;max-width:860px}
+@media(max-width:768px){.sl-body.has-vis{grid-template-columns:1fr}}
+
+/* concepts */
+.concepts{display:grid;grid-template-columns:1fr;gap:10px}
+.concept{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--step-c);border-radius:0 10px 10px 0;padding:14px 16px}
+.concept-name{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--step-c);margin-bottom:5px}
+.concept-fact{font-size:14px;color:var(--text);line-height:1.5}
+
+/* visuals */
+.vis-code{background:var(--raised);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.vis-code-hdr{padding:9px 16px;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);font-family:ui-monospace,monospace;display:flex;align-items:center;gap:8px}
+.vis-code-hdr::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--muted);opacity:.5}
+.vis-code pre{padding:16px;font-size:12.5px;line-height:1.75;color:var(--text);font-family:ui-monospace,'SF Mono',Menlo,monospace;overflow-x:auto;white-space:pre}
+.vis-code .k{color:var(--blue)}
+.vis-code .v{color:var(--green)}
+.vis-code .s{color:var(--teal)}
+.vis-code .c{color:var(--muted);font-style:italic}
+.flow-diag{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 16px;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.flow-node{text-align:center;padding:8px 12px;flex-shrink:0}
+.fn-icon{font-size:22px;display:block;margin-bottom:6px}
+.fn-lbl{font-size:13px;font-weight:600;display:block}
+.fn-sub{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.flow-arr{color:var(--muted);font-size:18px;flex-shrink:0;display:flex;align-items:center}
+.file-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fc{background:var(--card);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:12px;font-family:ui-monospace,monospace;display:flex;align-items:center;gap:6px}
+.fc.bad{border-left:3px solid var(--red);color:var(--text)}
+.fc.warn{border-left:3px solid var(--amber)}
+.cf-adv{display:flex;align-items:flex-start;gap:12px;background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:14px 18px;margin-top:18px}
+.cf-adv-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);white-space:nowrap;flex-shrink:0;padding-top:2px}
+.cf-adv-text{font-size:14px;color:var(--muted);line-height:1.55}
+.cf-adv-text strong{color:var(--green)}
+
+/* slide footer nav */
+.sl-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:24px;border-top:1px solid var(--border)}
+.sl-foot-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);transition:all .15s}
+.sl-foot-btn:hover{color:var(--text);border-color:var(--text)}
+.sl-foot-btn:disabled{opacity:.3;cursor:default}
+.sl-progress{font-size:13px;color:var(--muted)}
+
+/* hero slide */
+.hero-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px}
+@media(max-width:640px){.hero-cols{grid-template-columns:1fr}}
+.hcol{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.hcol-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.hcol-list{list-style:none;display:flex;flex-direction:column;gap:7px}
+.hcol-list li{font-size:14px;display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.hcol-list li::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0;margin-top:5.5px}
+.cmp-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.cmp-bar{grid-template-columns:1fr}}
+.cmp-side{border-radius:10px;padding:14px 18px}
+.cmp-side.good{background:rgba(63,185,80,.07);border:1px solid rgba(63,185,80,.2)}
+.cmp-side.bad{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.2)}
+.cmp-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.cmp-label.good{color:var(--green)}.cmp-label.bad{color:var(--red)}
+.cmp-stats{display:flex;flex-wrap:wrap;gap:10px}
+.cmp-stat{font-size:13px}
+
+/* tanzu slide */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:780px){.feat-grid{grid-template-columns:1fr}}
+.feat{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--fc);border-radius:12px;padding:20px}
+.feat-tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fc);border:1px solid var(--fc);border-radius:4px;padding:2px 6px;margin-bottom:10px;opacity:.8}
+.feat-icon{font-size:26px;margin-bottom:10px}
+.feat-title{font-size:15px;font-weight:700;margin-bottom:7px}
+.feat-desc{font-size:13.5px;color:var(--muted);line-height:1.6}
+.feat-desc code{font-size:.78em}
+footer{border-top:1px solid var(--border);padding:20px 56px;font-size:12px;color:var(--muted)}
+
+/* ── PIPELINE DIAGRAMS ───────────────────────────────────── */
+.pipe-diag{display:flex;flex-direction:column;gap:10px;flex:1}
+.pipe-row{display:flex;align-items:stretch;gap:8px}
+.pipe-node{flex:1;background:var(--card);border:1px solid var(--border);border-top:3px solid var(--nc);border-radius:12px;padding:16px 12px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s;position:relative;min-width:0}
+.pipe-node:hover{background:var(--raised);transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.pn-num{font-size:32px;font-weight:800;color:var(--nc);opacity:.2;line-height:1;margin-bottom:5px}
+.pn-cat{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--nc);margin-bottom:5px}
+.pn-title{font-size:14px;font-weight:700;line-height:1.3;margin-bottom:4px}
+.pn-hint{font-size:11.5px;color:var(--muted);line-height:1.4}
+.pipe-arr{font-size:18px;color:var(--border);flex-shrink:0;display:flex;align-items:center;padding:0 1px}
+.pipe-conn{font-size:22px;color:var(--border);text-align:right;line-height:1;padding-right:4px}
+.pipe-hint{font-size:11.5px;color:var(--muted);text-align:center;margin-top:2px}
+.pipe-diag-sm .pn-num{font-size:22px}
+.pipe-diag-sm .pn-cat{font-size:8px}
+.pipe-diag-sm .pn-title{font-size:13px}
+.pipe-diag-sm .pn-hint{font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
+  <span class="logo-text">Tanzu Platform for CF</span>
+  <span class="logo-div">/</span>
+  <span class="logo-sub">Deployment Journey</span>
+  <div class="hdr-gap"></div>
+  <div class="sw-row">
+    <span class="sw-lbl" id="sw-lbl">Light</span>
+    <label class="switch"><input type="checkbox" id="sw" checked onchange="setTheme()"><span class="slider"></span></label>
+  </div>
+</header>
+
+<div class="page-shell">
+  <aside class="sidebar">
+    <div class="wf-toggle">
+      <button class="wf-btn active" id="wf-cf" style="--wf-c:var(--blue)" onclick="switchWf('cf')">
+        &#9729; Cloud Foundry <span class="wf-count">6 steps</span>
+      </button>
+      <button class="wf-btn" id="wf-k8s" style="--wf-c:var(--red)" onclick="switchWf('k8s')">
+        &#9881; Kubernetes <span class="wf-count">10 steps</span>
+      </button>
+    </div>
+    <div class="side-head">Navigation</div>
+    <ul class="snav" id="snav"></ul>
+  </aside>
+
+  <div class="main-area" id="main">
+
+    <!-- CF INTRO -->
+    <div class="slide" id="cf-intro" style="position:relative">
+      <p class="sl-eyebrow">Tanzu Platform &middot; Elastic Application Runtime</p>
+      <h1 class="sl-title" style="font-size:clamp(24px,3.5vw,40px)">From <span style="color:var(--blue)">cf push</span> to live traffic</h1>
+      <p style="font-size:16px;color:var(--muted);margin-bottom:24px">Six platform-managed stages. Click any stage to zoom in.</p>
+
+      <div class="pipe-diag">
+        <div class="pipe-row">
+          <div class="pipe-node" style="--nc:var(--blue)" onclick="goSlide('cf-0')">
+            <div class="pn-num">1</div>
+            <div class="pn-cat">Developer</div>
+            <div class="pn-title">cf push</div>
+            <div class="pn-hint">JAR + manifest.yml</div>
+          </div>
+          <div class="pipe-arr">&#8594;</div>
+          <div class="pipe-node" style="--nc:var(--amber)" onclick="goSlide('cf-1')">
+            <div class="pn-num">2</div>
+            <div class="pn-cat">Platform builds</div>
+            <div class="pn-title">Buildpack &#8594; Droplet</div>
+            <div class="pn-hint">No Dockerfile needed</div>
+          </div>
+          <div class="pipe-arr">&#8594;</div>
+          <div class="pipe-node" style="--nc:var(--violet)" onclick="goSlide('cf-2')">
+            <div class="pn-num">3</div>
+            <div class="pn-cat">Platform schedules</div>
+            <div class="pn-title">Diego Auction</div>
+            <div class="pn-hint">Best-fit Cell wins</div>
+          </div>
+        </div>
+        <div class="pipe-conn">&#8595;</div>
+        <div class="pipe-row">
+          <div class="pipe-node" style="--nc:var(--teal)" onclick="goSlide('cf-5')">
+            <div class="pn-num">6</div>
+            <div class="pn-cat">Live</div>
+            <div class="pn-title">Health check &#8594; Live</div>
+            <div class="pn-hint">GoRouter + self-heal</div>
+          </div>
+          <div class="pipe-arr">&#8592;</div>
+          <div class="pipe-node" style="--nc:var(--green)" onclick="goSlide('cf-4')">
+            <div class="pn-num">5</div>
+            <div class="pn-cat">Platform runs</div>
+            <div class="pn-title">Garden + App Start</div>
+            <div class="pn-hint">JVM boots, Spring wires</div>
+          </div>
+          <div class="pipe-arr">&#8592;</div>
+          <div class="pipe-node" style="--nc:var(--orange)" onclick="goSlide('cf-3')">
+            <div class="pn-num">4</div>
+            <div class="pn-cat">Platform wires</div>
+            <div class="pn-title">Service Bindings</div>
+            <div class="pn-hint">VCAP_SERVICES injected</div>
+          </div>
+        </div>
+        <div class="pipe-hint">&#8592; click any stage to zoom in &nbsp;&#8901;&nbsp; use &#8592;&#8594; arrow keys to navigate</div>
+      </div>
+
+      <div class="sl-foot">
+        <button class="sl-foot-btn" disabled>&#8592; Previous</button>
+        <span class="sl-progress" id="cf-intro-prog"></span>
+        <button class="sl-foot-btn" onclick="nextSlide()">Next &#8594;</button>
+      </div>
+    </div>
+
+<div class="slide" id="k8s-intro">
+      <p class="sl-eyebrow">Kubernetes &middot; Same app, significantly more work</p>
+      <h1 class="sl-title" style="font-size:clamp(24px,3.5vw,40px)">Ten steps before your app goes live</h1>
+      <p style="font-size:16px;color:var(--muted);margin-bottom:20px">Compare with Cloud Foundry: 6 platform-managed stages. Click any stage to zoom in.</p>
+
+      <div class="pipe-diag pipe-diag-sm" style="margin-bottom:16px">
+        <div class="pipe-row">
+          <div class="pipe-node" style="--nc:var(--amber)" onclick="goSlide('k8s-0')">
+            <div class="pn-num">1</div>
+            <div class="pn-cat">Containerise</div>
+            <div class="pn-title">Write Dockerfile</div>
+            <div class="pn-hint">You own every CVE</div>
+          </div>
+          <div class="pipe-arr">&#8594;</div>
+          <div class="pipe-node" style="--nc:var(--amber)" onclick="goSlide('k8s-1')">
+            <div class="pn-num">2</div>
+            <div class="pn-cat">Containerise</div>
+            <div class="pn-title">Container registry</div>
+            <div class="pn-hint">Build, tag &amp; push</div>
+          </div>
+          <div class="pipe-arr">&#8594;</div>
+          <div class="pipe-node" style="--nc:var(--red)" onclick="goSlide('k8s-2')">
+            <div class="pn-num">3</div>
+            <div class="pn-cat">Config</div>
+            <div class="pn-title">Manage secrets</div>
+            <div class="pn-hint">12+ kubectl commands</div>
+          </div>
+          <div class="pipe-arr">&#8594;</div>
+          <div class="pipe-node" style="--nc:var(--red)" onclick="goSlide('k8s-3')">
+            <div class="pn-num">4</div>
+            <div class="pn-cat">Dependencies</div>
+            <div class="pn-title">Install services</div>
+            <div class="pn-hint">6+ Helm charts</div>
+          </div>
+          <div class="pipe-arr">&#8594;</div>
+          <div class="pipe-node" style="--nc:var(--red)" onclick="goSlide('k8s-4')">
+            <div class="pn-num">5</div>
+            <div class="pn-cat">Config</div>
+            <div class="pn-title">RBAC &amp; namespaces</div>
+            <div class="pn-hint">Roles per team &amp; env</div>
+          </div>
+        </div>
+        <div class="pipe-conn">&#8595;</div>
+        <div class="pipe-row">
+          <div class="pipe-node" style="--nc:var(--teal)" onclick="goSlide('k8s-9')">
+            <div class="pn-num">10</div>
+            <div class="pn-cat">Operate</div>
+            <div class="pn-title">Operate cluster</div>
+            <div class="pn-hint">Upgrades every 4 months</div>
+          </div>
+          <div class="pipe-arr">&#8592;</div>
+          <div class="pipe-node" style="--nc:var(--teal)" onclick="goSlide('k8s-8')">
+            <div class="pn-num">9</div>
+            <div class="pn-cat">Operate</div>
+            <div class="pn-title">Scale &amp; CVE patch</div>
+            <div class="pn-hint">Rebuild per app</div>
+          </div>
+          <div class="pipe-arr">&#8592;</div>
+          <div class="pipe-node" style="--nc:var(--violet)" onclick="goSlide('k8s-7')">
+            <div class="pn-num">8</div>
+            <div class="pn-cat">Deploy</div>
+            <div class="pn-title">Deploy &amp; debug</div>
+            <div class="pn-hint">CrashLoopBackOff?</div>
+          </div>
+          <div class="pipe-arr">&#8592;</div>
+          <div class="pipe-node" style="--nc:var(--violet)" onclick="goSlide('k8s-6')">
+            <div class="pn-num">7</div>
+            <div class="pn-cat">Deploy</div>
+            <div class="pn-title">Ingress &amp; TLS</div>
+            <div class="pn-hint">ingress-ctrl + cert-mgr</div>
+          </div>
+          <div class="pipe-arr">&#8592;</div>
+          <div class="pipe-node" style="--nc:var(--violet)" onclick="goSlide('k8s-5')">
+            <div class="pn-num">6</div>
+            <div class="pn-cat">Deploy</div>
+            <div class="pn-title">Write 9+ YAMLs</div>
+            <div class="pn-hint">Deployment, Service...</div>
+          </div>
+        </div>
+        <div class="pipe-hint">&#8592; click any stage to zoom in &nbsp;&#8901;&nbsp; steps 3&#8211;5 (red) don&#x27;t exist in Cloud Foundry</div>
+      </div>
+
+      <div class="cmp-bar">
+        <div class="cmp-side bad">
+          <div class="cmp-label bad">Kubernetes</div>
+          <div class="cmp-stats">
+            <span class="cmp-stat">&#128196; <strong>9+ YAML files</strong></span>
+            <span class="cmp-stat">&#9881; <strong>6+ Helm installs</strong></span>
+            <span class="cmp-stat">&#128273; <strong>12+ secrets to manage</strong></span>
+            <span class="cmp-stat">&#128101; <strong>Platform team required</strong></span>
+            <span class="cmp-stat">&#9201; <strong>Hours to days</strong></span>
+          </div>
+        </div>
+        <div class="cmp-side good">
+          <div class="cmp-label good">Cloud Foundry</div>
+          <div class="cmp-stats">
+            <span class="cmp-stat">&#128196; <strong>1 manifest.yml</strong></span>
+            <span class="cmp-stat">&#9889; <strong>cf push</strong></span>
+            <span class="cmp-stat">&#128273; <strong>0 secrets to manage</strong></span>
+            <span class="cmp-stat">&#128100; <strong>Any developer</strong></span>
+            <span class="cmp-stat">&#9201; <strong>~90 seconds</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sl-foot">
+        <button class="sl-foot-btn" disabled>&#8592; Previous</button>
+        <span class="sl-progress" id="k8s-intro-prog"></span>
+        <button class="sl-foot-btn" onclick="nextSlide()">Next &#8594;</button>
+      </div>
+    </div>
+
+    <!-- CF STEPS rendered by JS into #cf-step-container -->
+    <div id="cf-step-container"></div>
+
+    <!-- K8S STEPS rendered by JS into #k8s-step-container -->
+    <div id="k8s-step-container"></div>
+
+    <!-- TANZU SLIDE -->
+    <div class="slide" id="tanzu" style="position:relative">
+      <p class="sl-eyebrow">Platform</p>
+      <h1 class="sl-title">What Tanzu Platform adds</h1>
+      <p style="font-size:16px;color:var(--muted);max-width:660px;line-height:1.5;margin-bottom:32px">Enterprise operations, fleet-wide security, AI-ready services, and multi-foundation governance &mdash; built on Elastic Application Runtime.</p>
+      <div class="feat-grid">
+        <div class="feat" style="--fc:var(--red)">
+          <div class="feat-tag">Tanzu 10.4 &middot; Security</div>
+          <div class="feat-icon">&#128737;&#65039;</div>
+          <div class="feat-title">Fleet-wide CVE patching</div>
+          <div class="feat-desc">AI compresses CVE-to-exploit from weeks to <strong style="color:var(--red)">hours</strong>. Tanzu Hub pinpoints exactly which buildpack version affects which apps. One click generates a compatibility-safe Upgrade Plan. Developers click <strong>"Restage"</strong> &mdash; no code changes. Customers run <strong>100,000+ automated patches monthly</strong>.</div>
+        </div>
+        <div class="feat" style="--fc:var(--violet)">
+          <div class="feat-tag">Tanzu 10.3+ &middot; AI</div>
+          <div class="feat-icon">&#129302;</div>
+          <div class="feat-title">MCP Server Marketplace</div>
+          <div class="feat-desc">Publish MCP servers as CF services. Teams discover and bind with the standard CF CLI &mdash; credentials injected via VCAP_SERVICES. <strong>Off by default</strong>; admin approval per org prevents shadow AI. Spring Cloud Gateway provides automatic network isolation.</div>
+        </div>
+        <div class="feat" style="--fc:var(--blue)">
+          <div class="feat-tag">Tanzu 10.4 &middot; AI</div>
+          <div class="feat-icon">&#9889;</div>
+          <div class="feat-title">Agentic AI on CF</div>
+          <div class="feat-desc">GenAI tile adds GPU-hosted LLM endpoints to the marketplace. <code>cf create-service ai-models chat-and-tools-model</code> &mdash; credentials auto-injected. Spring AI + MCP enables server-driven agentic loops. HATEOAS constrains agent behaviour safely at each step.</div>
+        </div>
+        <div class="feat" style="--fc:var(--green)">
+          <div class="feat-tag">Tanzu Spring &middot; Security</div>
+          <div class="feat-icon">&#128274;</div>
+          <div class="feat-title">Spring supply chain security</div>
+          <div class="feat-desc"><strong>SLSA Level 3-validated</strong> Java dependencies &mdash; 100,000+ validated builds. CVE-only patch releases: apply security fixes without version upgrades. Spring Application Advisor delivers a <strong>70% reduction in upgrade time</strong>. Spring Boot 3.5 supported through 2032.</div>
+        </div>
+        <div class="feat" style="--fc:var(--orange)">
+          <div class="feat-tag">Ops Manager</div>
+          <div class="feat-icon">&#127959;&#65039;</div>
+          <div class="feat-title">Tile-based platform operations</div>
+          <div class="feat-desc">Install, configure, and upgrade EAR, data services, and security tiles through a UI. Handles certificate rotation, stemcell patching, and VM upgrades. 20+ tiles: Compliance Scanner, CredHub, Harbor, Healthwatch, Concourse, Cloud Service Brokers.</div>
+        </div>
+        <div class="feat" style="--fc:var(--teal)">
+          <div class="feat-tag">Tanzu Hub</div>
+          <div class="feat-icon">&#127758;</div>
+          <div class="feat-title">Multi-foundation management</div>
+          <div class="feat-desc">Centralised dashboard for multiple CF foundations. Fleet-wide vulnerability posture across buildpacks, stemcells, stacks, and tiles. Portfolio assessment and modernisation. Works in <strong>air-gapped environments</strong>. Loggregator Firehose nozzle to Datadog, Splunk, or Prometheus.</div>
+        </div>
+      </div>
+      <div class="sl-foot" style="margin-top:24px">
+        <button class="sl-foot-btn" onclick="prevSlide()">&#8592; Previous</button>
+        <span class="sl-progress" id="tanzu-prog"></span>
+        <button class="sl-foot-btn" disabled>Next &#8594;</button>
+      </div>
+    </div>
+
+    <footer>Tanzu Platform for Cloud Foundry &middot; Deployment Journey &middot; payflow-ai-epc &middot; Spring Boot 3.5 &middot; Spring AI 1.0</footer>
+  </div>
+</div>
+
+<script>
+/* ── CF STEPS (6) ───────────────────────────────────────── */
+const CF = [
+  { id:'cf-0', cat:'Developer', c:'var(--blue)', n:1,
+    title:'cf push',
+    desc:'One command. The CF CLI reads manifest.yml, packages your JAR, and uploads it to the platform. Authentication, quota validation, and app registration happen automatically.',
+    concepts:[
+      { name:'Cloud Controller', fact:'Authoritative API &mdash; validates org/space quotas and RBAC roles, creates the app record in PostgreSQL, coordinates all other components' },
+      { name:'Blobstore', fact:'Content-addressed store &mdash; your JAR is deduplicated. Subsequent pushes only upload what changed.' },
+      { name:'UAA', fact:'OAuth2 identity &mdash; supports LDAP and SAML federation. SpaceDeveloper can push; SpaceAuditor can only view.' },
+    ],
+    vis:`<div class="vis-code">
+      <div class="vis-code-hdr">manifest.yml</div>
+      <pre><span class="k">applications</span><span class="c">:</span>
+<span class="c">- </span><span class="k">name</span><span class="c">:</span> <span class="v">payflow-ai-epc</span>
+  <span class="k">memory</span><span class="c">:</span> <span class="v">1G</span>
+  <span class="k">disk_quota</span><span class="c">:</span> <span class="v">512M</span>
+  <span class="k">path</span><span class="c">:</span> <span class="s">backend/target/payflow-ai.jar</span>
+  <span class="k">buildpacks</span><span class="c">:</span>
+  <span class="c">-</span> <span class="v">java_buildpack_offline</span>
+  <span class="k">health-check-http-endpoint</span><span class="c">:</span> <span class="s">/actuator/health</span>
+  <span class="k">env</span><span class="c">:</span>
+    <span class="k">JBP_CONFIG_OPEN_JDK_JRE</span><span class="c">:</span> <span class="s">&apos;{ jre: { version: 21.+ } }&apos;</span>
+  <span class="k">services</span><span class="c">:</span>
+  <span class="c">-</span> <span class="v">payflow-postgres</span>
+  <span class="c">-</span> <span class="v">payflow-redis</span>
+  <span class="c">-</span> <span class="v">payflow-rabbitmq</span>
+  <span class="c">-</span> <span class="v">payflow-ai-chat-tools</span></pre></div>`
+  },
+  { id:'cf-1', cat:'Platform builds', c:'var(--amber)', n:2,
+    title:'Buildpack &rarr; Droplet',
+    desc:'The platform containerises your app automatically. java_buildpack_offline detects your JAR, installs JDK 21, and produces an immutable droplet &mdash; a self-contained artifact of JDK + JAR + start scripts. No Dockerfile, ever.',
+    concepts:[
+      { name:'Auto-detection', fact:'Buildpack inspects MANIFEST.MF &rarr; selects java_buildpack_offline automatically. No developer configuration needed.' },
+      { name:'Immutable droplet', fact:'Byte-identical artifact runs on any Cell. <code>cf scale -i 3</code> starts 3 instances from the same droplet &mdash; no rebuilds, no divergence.' },
+      { name:'CVE patching', fact:'JDK CVE drops? <code>cf restage</code> rebuilds from a patched buildpack. No Dockerfile, no registry. Tanzu Hub\'s "Restage" covers the entire fleet.' },
+    ],
+    vis:`<div class="flow-diag" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px;width:100%">
+        <div class="flow-node" style="background:var(--raised);border:1px solid var(--border);border-radius:10px;width:100%">
+          <span class="fn-icon">&#9749;</span>
+          <span class="fn-lbl">Spring Boot JAR</span>
+          <span class="fn-sub">payflow-ai.jar</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;width:100%">
+        <div class="flow-node" style="background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:10px;flex:1">
+          <span class="fn-icon">&#128269;</span>
+          <span class="fn-lbl" style="color:var(--amber)">detect</span>
+          <span class="fn-sub">finds MANIFEST.MF</span>
+        </div>
+        <div class="flow-node" style="background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:10px;flex:1">
+          <span class="fn-icon">&#128296;</span>
+          <span class="fn-lbl" style="color:var(--amber)">compile</span>
+          <span class="fn-sub">installs JDK 21</span>
+        </div>
+        <div class="flow-node" style="background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:10px;flex:1">
+          <span class="fn-icon">&#128196;</span>
+          <span class="fn-lbl" style="color:var(--amber)">release</span>
+          <span class="fn-sub">writes start cmd</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;width:100%">
+        <div class="flow-node" style="background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.25);border-radius:10px;width:100%">
+          <span class="fn-icon">&#128167;</span>
+          <span class="fn-lbl" style="color:var(--green)">Droplet</span>
+          <span class="fn-sub">JDK 21 + JAR + start scripts &mdash; immutable, runs on any Cell</span>
+        </div>
+      </div>
+    </div>`
+  },
+  { id:'cf-2', cat:'Platform schedules', c:'var(--violet)', n:3,
+    title:'Diego Auction',
+    desc:'Cloud Controller sends a Desired LRP to Diego BBS. Diego Brain runs an auction &mdash; every Cell VM bids with its available capacity, and the best-fit Cell wins. Multi-AZ spread is automatic with zero configuration.',
+    concepts:[
+      { name:'Desired LRP', fact:'Spec: droplet, memory=1G, disk, port, health-check endpoint &mdash; everything the platform needs to run your app' },
+      { name:'Cell auction', fact:'Each Cell\'s Rep reports available CPU, memory, and disk; Diego Brain assigns to best-fit. No node selectors, no affinity YAML.' },
+      { name:'Multi-AZ by default', fact:'Multiple instances automatically distributed across availability zones. Built into the scheduler, zero configuration.' },
+    ]
+  },
+  { id:'cf-3', cat:'Platform wires services', c:'var(--orange)', n:4,
+    title:'Service Bindings &rarr; VCAP_SERVICES',
+    desc:'CF calls each service broker via the Open Service Broker API and collects credentials for every bound service. All credentials are injected as VCAP_SERVICES &mdash; one JSON env var. Your app never handles secrets directly.',
+    concepts:[
+      { name:'Open Service Broker API', fact:'CC calls each broker\'s bind endpoint: PostgreSQL, Redis, RabbitMQ, AI endpoint. Each returns its credentials.' },
+      { name:'VCAP_SERVICES', fact:'All credentials serialised into one JSON env var, injected at container start. Secrets never in cleartext in any file, never rotated by hand.' },
+      { name:'java-cfenv-boot', fact:'Reads VCAP_SERVICES &rarr; auto-wires DataSource, Redis, ConnectionFactory, and Spring AI ChatClient. Zero application code changes.' },
+    ],
+    vis:`<div class="vis-code">
+      <div class="vis-code-hdr">VCAP_SERVICES (auto-injected at runtime)</div>
+      <pre><span class="c">// Injected by CF &mdash; your app code never touches these</span>
+{
+  <span class="k">"ai-models"</span>: [{
+    <span class="k">"name"</span>: <span class="s">"payflow-ai-chat-tools"</span>,
+    <span class="k">"credentials"</span>: { <span class="k">"endpoint"</span>: {
+      <span class="k">"openai_api_base"</span>: <span class="s">"https://genai.example.com/v1"</span>,
+      <span class="k">"api_key"</span>: <span class="s">"eyJhb..."</span>
+    }}
+  }],
+  <span class="k">"p.postgres"</span>: [{ <span class="k">"credentials"</span>: {
+    <span class="k">"host"</span>: <span class="s">"10.0.0.12"</span>, <span class="k">"port"</span>: <span class="v">5432</span>,
+    <span class="k">"name"</span>: <span class="s">"payflow_db"</span>, <span class="k">"password"</span>: <span class="s">"..."</span>
+  }}],
+  <span class="k">"p.redis"</span>:    [{ <span class="k">"credentials"</span>: { <span class="k">"host"</span>: <span class="s">"..."</span>, <span class="k">"tls_port"</span>: <span class="v">6380</span> }}],
+  <span class="k">"p.rabbitmq"</span>: [{ <span class="k">"credentials"</span>: { <span class="k">"hostname"</span>: <span class="s">"..."</span>, <span class="k">"vhost"</span>: <span class="s">"/"</span> }}]
+}</pre></div>`
+  },
+  { id:'cf-4', cat:'Platform runs', c:'var(--green)', n:5,
+    title:'Garden Container + App Start',
+    desc:'The winning Cell creates an isolated Linux container. JVM boots, EnvironmentPostProcessors run before any beans, and Spring auto-configuration wires all services from VCAP_SERVICES.',
+    concepts:[
+      { name:'Garden isolation', fact:'Linux namespaces (PID, net, mount, IPC) + cgroups enforce memory=1G, CPU, and disk exactly as declared. Other containers on the same Cell are invisible.' },
+      { name:'Deny-by-default networking', fact:'App Security Groups start with zero outbound connectivity. Communication must be explicitly declared &mdash; no lateral movement possible.' },
+      { name:'Spring auto-config', fact:'DataSource, ConnectionFactory, RedisProperties, ChatClient all wired from VCAP_SERVICES. No credentials hardcoded anywhere.' },
+    ]
+  },
+  { id:'cf-5', cat:'Live', c:'var(--teal)', n:6,
+    title:'Health check &rarr; Live traffic',
+    desc:'Diego polls /actuator/health. Once 200, the Route Emitter publishes to NATS and GoRouter adds this instance. Traffic flows. Diego watches every container forever &mdash; crashes self-heal in seconds.',
+    concepts:[
+      { name:'GoRouter', fact:'Built-in HTTP/HTTPS routing, TLS termination, and round-robin load balancing. No ingress controller, no cert-manager, no Ingress YAML.' },
+      { name:'Diego self-heals', fact:'Container crash &rarr; new auction &rarr; replacement container in seconds. Automatic. No PagerDuty, no runbook, no kubectl.' },
+      { name:'Loggregator', fact:'All app logs and platform metrics aggregated into the Firehose. Nozzle to Datadog, Splunk, or Prometheus &mdash; no log sidecar.' },
+    ],
+    vis:`<div class="flow-diag" style="flex-wrap:wrap;gap:6px">
+      <div class="flow-node" style="background:rgba(57,211,83,.08);border:1px solid rgba(57,211,83,.2);border-radius:10px">
+        <span class="fn-icon">&#128268;</span>
+        <span class="fn-lbl" style="color:var(--teal)">Diego</span>
+        <span class="fn-sub">polls /actuator/health</span>
+      </div>
+      <span class="flow-arr">&rarr;</span>
+      <div class="flow-node" style="background:var(--card);border:1px solid var(--border);border-radius:10px">
+        <span class="fn-icon">&#128255;</span>
+        <span class="fn-lbl">Route Emitter</span>
+        <span class="fn-sub">NATS publish</span>
+      </div>
+      <span class="flow-arr">&rarr;</span>
+      <div class="flow-node" style="background:var(--card);border:1px solid var(--border);border-radius:10px">
+        <span class="fn-icon">&#127760;</span>
+        <span class="fn-lbl">GoRouter</span>
+        <span class="fn-sub">adds route + TLS</span>
+      </div>
+      <span class="flow-arr">&rarr;</span>
+      <div class="flow-node" style="background:rgba(57,211,83,.08);border:1px solid rgba(57,211,83,.2);border-radius:10px">
+        <span class="fn-icon">&#128994;</span>
+        <span class="fn-lbl" style="color:var(--green)">Live</span>
+        <span class="fn-sub">HTTPS traffic flows</span>
+      </div>
+    </div>
+    <div style="margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--teal);margin-bottom:6px">Self-healing</div>
+        <div style="font-size:13px;color:var(--muted)">Container crash &rarr; Diego detects &rarr; new auction &rarr; replacement in seconds. No human action needed.</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);margin-bottom:6px">Loggregator</div>
+        <div style="font-size:13px;color:var(--muted)">All logs + metrics streamed to the Firehose. Nozzle to any observability platform &mdash; no sidecar.</div>
+      </div>
+    </div>`
+  },
+];
+
+/* ── K8S STEPS (10) ─────────────────────────────────────── */
+const K8S = [
+  { id:'k8s-0', cat:'Step 1 of 10', c:'var(--amber)', n:1,
+    title:'Write a Dockerfile',
+    desc:'Before any K8s config, you must containerise your app. Choose a base image, write a multi-stage Dockerfile, harden with a non-root user &mdash; and own every CVE in that image permanently.',
+    concepts:[
+      { name:'Base image decision', fact:'openjdk:21-jre-slim, eclipse-temurin, or distroless &mdash; each with different CVE surfaces and update cadences. No platform standard enforced.' },
+      { name:'Multi-stage build', fact:'JDK build stage + JRE runtime stage, non-root user, file permissions. Every team\'s Dockerfile is subtly different.' },
+      { name:'You own every future CVE', fact:'JDK vulnerability drops? Rebuild each app\'s image, push to registry, update deployment tag, roll out. Per app. Manually. While attackers move in hours.' },
+    ],
+    cf:'<strong>No Dockerfile, ever.</strong> java_buildpack_offline containerises your JAR. CVE drops? Click "Restage" in Tanzu Hub &mdash; the platform rebuilds from a patched buildpack. Customers run <strong>100,000+ automated patches monthly</strong>.',
+    vis:`<div class="vis-code">
+      <div class="vis-code-hdr">Dockerfile (write and maintain forever)</div>
+      <pre><span class="c"># Stage 1: build</span>
+<span class="k">FROM</span> <span class="v">eclipse-temurin:21-jdk-jammy</span> <span class="k">AS</span> build
+<span class="k">WORKDIR</span> /app
+<span class="k">COPY</span> . .
+<span class="k">RUN</span> ./mvnw package -DskipTests
+
+<span class="c"># Stage 2: runtime (smaller image, fewer CVEs)</span>
+<span class="k">FROM</span> <span class="v">eclipse-temurin:21-jre-jammy</span>
+<span class="k">RUN</span> groupadd -r app &amp;&amp; useradd -r -g app app
+<span class="k">WORKDIR</span> /app
+<span class="k">COPY</span> --from=build /app/backend/target/payflow-ai.jar app.jar
+<span class="k">USER</span> app
+<span class="k">EXPOSE</span> 8080
+<span class="k">ENTRYPOINT</span> [<span class="s">"java"</span>, <span class="s">"-jar"</span>, <span class="s">"app.jar"</span>]
+
+<span class="c"># When a JDK CVE drops: update base image tag,</span>
+<span class="c"># docker build, docker push, update deployment &mdash;</span>
+<span class="c"># repeat for EVERY app in your estate.</span></pre></div>`
+  },
+  { id:'k8s-1', cat:'Step 2 of 10', c:'var(--amber)', n:2,
+    title:'Container registry',
+    desc:'Provision a container registry, configure authentication, define an image tagging strategy, and create pull secrets in every namespace. Miss one and pods silently fail to start.',
+    concepts:[
+      { name:'Registry operations', fact:'Provision DockerHub, ECR, GCR, ACR, or Harbor. Storage costs, retention policies, auth token rotation &mdash; all yours to manage and pay for.' },
+      { name:'Image tagging', fact:':latest is dangerous in production. Git-SHA or semver tags require CI automation and discipline across every team.' },
+      { name:'imagePullSecret everywhere', fact:'Create a K8s secret with registry credentials and reference it in every Deployment in every namespace. Any gap and pods fail to pull.' },
+    ],
+    cf:'<strong>No registry.</strong> CF stores the droplet in its internal blobstore. No image tagging, no pull secrets, no registry costs, no auth tokens to rotate.'
+  },
+  { id:'k8s-2', cat:'Step 3 of 10', c:'var(--red)', n:3,
+    title:'Manage ALL secrets manually',
+    desc:'Every service credential must be created as a Kubernetes Secret by hand &mdash; base64-encoded, applied to the cluster, referenced in Deployments. Four services means dozens of kubectl commands, repeated per environment.',
+    concepts:[
+      { name:'kubectl create secret', fact:'DB password, Redis password, RabbitMQ creds, AI API key &mdash; each a separate command. Repeat for dev, staging, and prod. Any typo fails silently at runtime.' },
+      { name:'Not encrypted at rest', fact:'K8s Secrets are base64-encoded by default, not encrypted. Real encryption requires a KMS provider &mdash; additional cluster configuration.' },
+      { name:'Rotation complexity', fact:'Update the Secret, trigger a rolling Deployment restart. No automated delivery. Credentials can silently expire mid-flight with no warning.' },
+    ],
+    cf:'<strong>No secrets to manage.</strong> VCAP_SERVICES delivers all credentials at runtime via service bindings. Secrets never in cleartext, never touch git, never rotated by hand. Structural secrets isolation.',
+    vis:`<div class="vis-code">
+      <div class="vis-code-hdr">What you must run (per service, per environment)</div>
+      <pre><span class="c"># Database credentials</span>
+<span class="k">kubectl</span> create secret generic postgres-creds \
+  --from-literal=<span class="v">host</span>=10.0.0.12 \
+  --from-literal=<span class="v">port</span>=5432 \
+  --from-literal=<span class="v">name</span>=payflow_db \
+  --from-literal=<span class="v">password</span>=s3cr3t
+
+<span class="c"># Redis, RabbitMQ, AI API key &mdash; same pattern, 3 more times</span>
+<span class="k">kubectl</span> create secret generic redis-creds ...
+<span class="k">kubectl</span> create secret generic rabbitmq-creds ...
+<span class="k">kubectl</span> create secret generic ai-api-key ...
+
+<span class="c"># Then reference each in your Deployment:</span>
+<span class="k">env</span><span class="c">:</span>
+<span class="c">- name: DB_PASSWORD</span>
+  <span class="k">valueFrom</span><span class="c">:</span>
+    <span class="k">secretKeyRef</span><span class="c">:</span>
+      <span class="k">name</span><span class="c">:</span> <span class="v">postgres-creds</span>
+      <span class="k">key</span><span class="c">:</span> <span class="v">password</span></pre></div>`
+  },
+  { id:'k8s-3', cat:'Step 4 of 10', c:'var(--red)', n:4,
+    title:'Install service dependencies',
+    desc:'There is no service marketplace. Install PostgreSQL, Redis, and RabbitMQ via Helm charts or operators. Each requires its own values.yaml, PVC configuration, backup strategy, and upgrade lifecycle.',
+    concepts:[
+      { name:'Helm chart per service', fact:'bitnami/postgresql, bitnami/redis, bitnami/rabbitmq &mdash; each needs a values.yaml, StorageClass, PersistentVolumeClaim, and TLS config.' },
+      { name:'Persistent volumes', fact:'StorageClass, PVC, and backup strategy are your responsibility. A misconfigured PVC and your database loses data permanently.' },
+      { name:'AI endpoint &mdash; no standard path', fact:'No marketplace for LLMs. Options: self-host a GPU model (massive effort), or manage a cloud API key as yet another manually-rotated K8s secret.' },
+    ],
+    cf:'<strong>cf create-service.</strong> One command provisions a production-grade managed database, cache, or message broker. The Tanzu GenAI tile adds LLM endpoints to the same marketplace &mdash; same pattern, automatic credential injection.'
+  },
+  { id:'k8s-4', cat:'Step 5 of 10', c:'var(--red)', n:5,
+    title:'Configure RBAC &amp; namespaces',
+    desc:'Kubernetes has no concept of "org" or "space". You must manually create namespaces, set resource quotas, configure RBAC roles for each team, and create ServiceAccounts &mdash; for every environment.',
+    concepts:[
+      { name:'Namespaces &amp; quotas', fact:'Create a namespace per team or env, set ResourceQuota and LimitRange to prevent runaway resource consumption &mdash; misconfigure and one app starves others.' },
+      { name:'RBAC roles', fact:'ClusterRole, Role, RoleBinding, ClusterRoleBinding &mdash; K8s RBAC is powerful but verbose. Wrong config and developers can access each other\'s secrets.' },
+      { name:'ServiceAccount per app', fact:'Best practice is a dedicated ServiceAccount per Deployment with minimal permissions. More YAML, more operational surface.' },
+    ],
+    cf:'<strong>Orgs and spaces are built in.</strong> CF\'s RBAC model (OrgManager, SpaceDeveloper, SpaceAuditor) is user-friendly and enforced by UAA. Quotas are set at the org/space level &mdash; no YAML.'
+  },
+  { id:'k8s-5', cat:'Step 6 of 10', c:'var(--violet)', n:6,
+    title:'Write 9+ YAML files',
+    desc:'A single Spring Boot app requires: Deployment, Service, Ingress, ConfigMap, 4 Secret files, and an HPA. Nine files to write, version-control, and maintain forever. Every misconfiguration is a silent runtime failure.',
+    concepts:[
+      { name:'Deployment YAML', fact:'Image, replicas, CPU/memory requests AND limits, liveness probe, readiness probe, env vars wired from each Secret. Misconfigure any one and pods OOMKill or never become Ready.' },
+      { name:'Service + Ingress', fact:'ClusterIP Service + Ingress resource &mdash; but first install an ingress controller (nginx or traefik via Helm) and cert-manager for TLS. Four more components before traffic reaches your app.' },
+      { name:'HPA for autoscaling', fact:'Install metrics-server, write HPA resource, configure targets. Auto-scaling is not built in &mdash; it is a separate component you configure and own.' },
+    ],
+    cf:'<strong>One manifest.yml &mdash; ~20 lines.</strong> Memory, instances, health check, routes, and service bindings. <code>cf push</code>. That is the entire deployment specification.',
+    vis:`<div>
+      <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--red);margin-bottom:10px">Files required for one app</div>
+      <div class="file-grid">
+        <div class="fc warn">&#128196; Dockerfile</div>
+        <div class="fc">&#128196; Deployment.yaml</div>
+        <div class="fc">&#128196; Service.yaml</div>
+        <div class="fc">&#128196; Ingress.yaml</div>
+        <div class="fc">&#128196; ConfigMap.yaml</div>
+        <div class="fc bad">&#128273; Secret-postgres.yaml</div>
+        <div class="fc bad">&#128273; Secret-redis.yaml</div>
+        <div class="fc bad">&#128273; Secret-rabbitmq.yaml</div>
+        <div class="fc bad">&#128273; Secret-ai-key.yaml</div>
+        <div class="fc">&#128196; HPA.yaml</div>
+      </div>
+      <div style="margin-top:14px;background:rgba(63,185,80,.07);border:1px solid rgba(63,185,80,.2);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:12px 16px;font-size:13px;color:var(--muted)">
+        <strong style="color:var(--green)">With CF:</strong> one <code>manifest.yml</code> (~20 lines) + <code>cf push</code>
+      </div>
+    </div>`
+  },
+  { id:'k8s-6', cat:'Step 7 of 10', c:'var(--violet)', n:7,
+    title:'Set up Ingress &amp; TLS',
+    desc:'Before any external traffic reaches your app, you must install an ingress controller cluster-wide, configure TLS certificate management, and write per-app Ingress resources.',
+    concepts:[
+      { name:'Ingress controller', fact:'Install nginx-ingress or traefik via Helm, configure globally for the cluster, then write per-app Ingress YAML resources. Any misconfiguration and all apps lose routing.' },
+      { name:'cert-manager', fact:'Install cert-manager operator, configure a ClusterIssuer (Let\'s Encrypt or internal CA), annotate each Ingress for auto-cert. Another operator to monitor and upgrade.' },
+      { name:'DNS management', fact:'External DNS records must point to the ingress controller\'s LoadBalancer IP. Change the cluster and update DNS everywhere &mdash; no built-in route registration.' },
+    ],
+    cf:'<strong>GoRouter is built in.</strong> HTTP, HTTPS, and TLS termination are handled out of the box. Routes register automatically on <code>cf push</code>. No ingress controller, no cert-manager, no DNS to manage.'
+  },
+  { id:'k8s-7', cat:'Step 8 of 10', c:'var(--violet)', n:8,
+    title:'kubectl apply &amp; debug',
+    desc:'Apply all 9+ manifests. Kubernetes silently accepts YAML that fails at runtime. Debugging failures requires deep platform knowledge &mdash; not just knowledge of your application.',
+    concepts:[
+      { name:'Apply ordering matters', fact:'Secrets must exist before Deployments. ConfigMaps before Pods that mount them. Get the order wrong and you get cryptic errors or silent runtime failures.' },
+      { name:'CrashLoopBackOff', fact:'Check image pull, secret references, resource limits, probe thresholds, node taints, and network policies. A multi-hour debugging exercise for each failure.' },
+      { name:'No central log aggregation', fact:'kubectl logs shows one pod at a time. For production observability you need EFK, Loki, or a paid solution &mdash; another system to run and maintain.' },
+    ],
+    cf:'<strong>cf push</strong> reports "1 of 1 instances running" &mdash; or tells you exactly what failed and why. No K8s expertise required to understand the output.'
+  },
+  { id:'k8s-8', cat:'Step 9 of 10', c:'var(--teal)', n:9,
+    title:'Scale, update &amp; CVE patch',
+    desc:'Scaling needs kubectl or HPA configuration. Updates need a docker build, push, tag change, and rollout. A JDK CVE means rebuilding every app image individually &mdash; while AI-assisted attackers move in hours.',
+    concepts:[
+      { name:'Scaling', fact:'kubectl scale or HPA with metrics-server. Vertical scaling requires a pod restart &mdash; brief downtime or a careful rolling strategy is needed.' },
+      { name:'CVE patch cycle per app', fact:'New base image &rarr; docker build &rarr; docker push &rarr; update tag in Deployment &rarr; kubectl apply. Repeat for every app. Attackers use AI and move in hours.' },
+      { name:'Rolling update', fact:'K8s rolling updates work &mdash; but configure maxSurge and maxUnavailable, or accept defaults that may cause brief unavailability on every deploy.' },
+    ],
+    cf:'<strong>cf scale -i 3</strong> (instant). <strong>cf push</strong> (rolling deploy). <strong>cf restage</strong> (CVE patch &mdash; platform-wide, no Docker). Tanzu Hub Upgrade Planner generates compatibility-safe plans in clicks.'
+  },
+  { id:'k8s-9', cat:'Step 10 of 10', c:'var(--teal)', n:10,
+    title:'Operate the cluster itself',
+    desc:'Beyond your app, a dedicated team must run Kubernetes: upgrade control plane and nodes every 4 months, patch node OS, manage etcd backups, rotate certificates, and govern RBAC across teams.',
+    concepts:[
+      { name:'Cluster upgrades every 4 months', fact:'K8s minor versions release on a fixed cadence. Each upgrade requires planning, compatibility testing, maintenance windows, and rollback plans &mdash; for the platform, not your app.' },
+      { name:'etcd backup &amp; recovery', fact:'etcd is the K8s state store. Backing it up, restoring after failure, and protecting against corruption is entirely your operational responsibility.' },
+      { name:'Platform team required', fact:'Kubernetes demands dedicated platform engineers, SREs, K8s-certified operators, and toolchain expertise &mdash; a team and a significant ongoing budget.' },
+    ],
+    cf:'<strong>Tanzu Ops Manager</strong> handles platform upgrades, stemcell patching, and certificate rotation via a tile-based UI. <strong>Tanzu Hub</strong> provides fleet-wide vulnerability posture and generates upgrade plans. Developers never touch the platform layer.'
+  },
+];
+
+/* ── STATE ──────────────────────────────────────────────── */
+let wf = 'cf';
+let slideIdx = 0;
+
+function getSlideIds() {
+  const steps = wf === 'cf' ? CF : K8S;
+  return [wf+'-intro', ...steps.map(s => s.id), 'tanzu'];
+}
+
+/* ── RENDER STEPS ───────────────────────────────────────── */
+function renderSteps() {
+  ['cf','k8s'].forEach(w => {
+    const steps = w === 'cf' ? CF : K8S;
+    document.getElementById(w+'-step-container').innerHTML = steps.map((s,i) => {
+      const hasVis = !!s.vis;
+      return `<div class="slide" id="${s.id}" style="position:relative">
+        <span class="sl-num-bg" style="--step-c:${s.c}">${s.n}</span>
+        <div class="sl-cat" style="--step-c:${s.c}">${s.cat}</div>
+        <h1 class="sl-title">${s.title}</h1>
+        <p class="sl-desc">${s.desc}</p>
+        <div class="sl-body ${hasVis ? 'has-vis' : 'no-vis'}">
+          <div>
+            <div class="concepts">
+              ${s.concepts.map(c=>`
+                <div class="concept" style="--step-c:${s.c}">
+                  <div class="concept-name">${c.name}</div>
+                  <div class="concept-fact">${c.fact}</div>
+                </div>`).join('')}
+            </div>
+            ${s.cf ? `<div class="cf-adv"><span class="cf-adv-badge">&#9729; CF</span><span class="cf-adv-text">${s.cf}</span></div>` : ''}
+          </div>
+          ${hasVis ? `<div class="slide-vis">${s.vis}</div>` : ''}
+        </div>
+        <div class="sl-foot">
+          <button class="sl-foot-btn" onclick="prevSlide()">&#8592; Previous</button>
+          <span class="sl-progress" id="${s.id}-prog"></span>
+          <button class="sl-foot-btn" onclick="nextSlide()">Next &#8594;</button>
+        </div>
+      </div>`;
+    }).join('');
+  });
+}
+
+/* ── SHOW SLIDE ─────────────────────────────────────────── */
+function showSlideAt(idx) {
+  const ids = getSlideIds();
+  if(idx < 0 || idx >= ids.length) return;
+  slideIdx = idx;
+  const id = ids[idx];
+
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) {
+    el.classList.add('active');
+    document.getElementById('main').scrollTo({top:0, behavior:'instant'});
+  }
+
+  // progress label
+  const prog = document.getElementById(id+'-prog');
+  if(prog) prog.textContent = (idx+1)+' / '+ids.length;
+
+  // sidebar highlight
+  document.querySelectorAll('.snav-item').forEach(el => el.classList.remove('active'));
+  const si = document.getElementById('si-'+id);
+  if(si) { si.classList.add('active'); si.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+}
+
+function nextSlide() { showSlideAt(slideIdx + 1); }
+function prevSlide() { showSlideAt(slideIdx - 1); }
+
+/* ── SIDEBAR ────────────────────────────────────────────── */
+function renderSidebar() {
+  const steps = wf === 'cf' ? CF : K8S;
+  const introId = wf+'-intro';
+  let html = `<li class="snav-item" id="si-${introId}" style="--step-c:var(--muted)" onclick="goSlide('${introId}')">
+    <span class="snav-n" style="font-size:8px">&#9670;</span><span>Overview</span></li>`;
+  html += steps.map((s,i) => `
+    <li class="snav-item" id="si-${s.id}" style="--step-c:${s.c}" onclick="goSlide('${s.id}')">
+      <span class="snav-n">${s.n}</span>
+      <span style="overflow:hidden;text-overflow:ellipsis">${s.title.replace(/&rarr;/g,'→').replace(/&amp;/g,'&')}</span>
+    </li>`).join('');
+  html += `<li class="snav-item" id="si-tanzu" style="--step-c:var(--muted)" onclick="goSlide('tanzu')">
+    <span class="snav-n" style="font-size:8px">&#9670;</span><span>Tanzu Platform</span></li>`;
+  document.getElementById('snav').innerHTML = html;
+}
+
+function goSlide(id) {
+  const ids = getSlideIds();
+  const idx = ids.indexOf(id);
+  if(idx >= 0) showSlideAt(idx);
+}
+
+/* ── SWITCH WORKFLOW ────────────────────────────────────── */
+function switchWf(w) {
+  wf = w;
+  ['cf','k8s'].forEach(x => document.getElementById('wf-'+x).classList.toggle('active', x===w));
+  renderSidebar();
+  showSlideAt(0);
+}
+
+/* ── KEYBOARD NAV ───────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown') nextSlide();
+  if(e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prevSlide();
+});
+
+/* ── THEME ──────────────────────────────────────────────── */
+function setTheme() {
+  const dark = document.getElementById('sw').checked;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.getElementById('sw-lbl').textContent = dark ? 'Light' : 'Dark';
+}
+
+/* ── INIT ───────────────────────────────────────────────── */
+renderSteps();
+renderSidebar();
+showSlideAt(0);
+</script>
+</body>
+</html>
